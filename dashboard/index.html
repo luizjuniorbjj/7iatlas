@@ -1336,12 +1336,13 @@
                 <p class="login-subtitle">Entre na sua conta para continuar</p>
 
                 <div class="login-tabs">
-                    <button class="login-tab active" onclick="switchLoginTab('email')">📧 Email</button>
+                    <button class="login-tab active" onclick="switchLoginTab('login')">🔑 Entrar</button>
+                    <button class="login-tab" onclick="switchLoginTab('register')">📝 Registrar</button>
                     <button class="login-tab" onclick="switchLoginTab('wallet')">🦊 MetaMask</button>
                 </div>
 
-                <!-- Email Login -->
-                <form class="login-form active" id="emailForm" onsubmit="handleEmailLogin(event)">
+                <!-- Login Form -->
+                <form class="login-form active" id="loginForm" onsubmit="handleEmailLogin(event)">
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" class="form-input" id="emailInput" placeholder="seu@email.com" required>
@@ -1351,7 +1352,34 @@
                         <input type="password" class="form-input" id="passwordInput" placeholder="••••••••" required>
                     </div>
                     <button type="submit" class="login-btn login-btn-primary">
-                        Entrar
+                        🔑 Entrar
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form class="login-form" id="registerForm" onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label>Nome Completo</label>
+                        <input type="text" class="form-input" id="registerName" placeholder="Seu nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-input" id="registerEmail" placeholder="seu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Senha</label>
+                        <input type="password" class="form-input" id="registerPassword" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Carteira MetaMask (opcional)</label>
+                        <input type="text" class="form-input" id="registerWallet" placeholder="0x...">
+                    </div>
+                    <div class="form-group">
+                        <label>Código de Indicação (opcional)</label>
+                        <input type="text" class="form-input" id="registerReferral" placeholder="Código do seu indicador">
+                    </div>
+                    <button type="submit" class="login-btn login-btn-primary">
+                        📝 Criar Conta
                     </button>
                 </form>
 
@@ -1365,8 +1393,8 @@
                     </p>
                 </div>
 
-                <div class="login-footer">
-                    Não tem conta? <a href="#">Criar conta</a>
+                <div class="login-footer" id="loginFooter">
+                    Não tem conta? <a href="#" onclick="switchLoginTab('register'); return false;">Criar conta</a>
                 </div>
             </div>
         </div>
@@ -2018,13 +2046,57 @@
         </nav>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
     <script>
-        // User data
-        const userData = {
+        // ========================================
+        // CONFIGURAÇÃO DO FIREBASE
+        // ========================================
+        // TODO: Substitua com suas credenciais do Firebase Console
+        // https://console.firebase.google.com/
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY_AQUI",
+            authDomain: "seu-projeto.firebaseapp.com",
+            projectId: "seu-projeto",
+            storageBucket: "seu-projeto.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abc123"
+        };
+
+        // Inicializa Firebase
+        let app, auth, db;
+        let currentUser = null;
+        let userProfile = null;
+
+        // Verifica se as credenciais foram configuradas
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "SUA_API_KEY_AQUI";
+
+        if (isFirebaseConfigured) {
+            app = firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log('🔥 Firebase inicializado com sucesso!');
+        } else {
+            console.warn('⚠️ Firebase não configurado. Usando modo demo.');
+        }
+
+        // ========================================
+        // DADOS DEMO (usado quando Firebase não está configurado)
+        // ========================================
+        const demoUserData = {
             email: 'luizjuniorbjj@gmail.com',
             password: '110677Pa*',
             wallet: '0x75d1a8ac59003088c60a20bde8953cbecfe41669',
-            name: 'Luiz Junior'
+            name: 'Luiz Junior',
+            level: 4,
+            balance: 2340,
+            bonus: 580,
+            position: 23,
+            referrals: 12,
+            createdAt: '05/12/2025'
         };
 
         // Create particles
@@ -2046,38 +2118,334 @@
         function switchLoginTab(tab) {
             document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
-            
-            if (tab === 'email') {
+
+            const footer = document.getElementById('loginFooter');
+
+            if (tab === 'login') {
                 document.querySelector('.login-tab:nth-child(1)').classList.add('active');
-                document.getElementById('emailForm').classList.add('active');
-            } else {
+                document.getElementById('loginForm').classList.add('active');
+                footer.innerHTML = 'Não tem conta? <a href="#" onclick="switchLoginTab(\'register\'); return false;">Criar conta</a>';
+            } else if (tab === 'register') {
                 document.querySelector('.login-tab:nth-child(2)').classList.add('active');
+                document.getElementById('registerForm').classList.add('active');
+                footer.innerHTML = 'Já tem conta? <a href="#" onclick="switchLoginTab(\'login\'); return false;">Fazer login</a>';
+            } else {
+                document.querySelector('.login-tab:nth-child(3)').classList.add('active');
                 document.getElementById('walletForm').classList.add('active');
+                footer.innerHTML = 'Não tem MetaMask? <a href="https://metamask.io/" target="_blank">Instalar</a>';
             }
         }
 
+        // Handle register
+        async function handleRegister(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const wallet = document.getElementById('registerWallet').value;
+            const referralCode = document.getElementById('registerReferral').value;
+
+            if (!isFirebaseConfigured) {
+                alert('Firebase não configurado. Configure as credenciais primeiro para habilitar o registro.');
+                return;
+            }
+
+            const user = await registerUser(email, password, name, wallet, referralCode);
+
+            if (user) {
+                alert('✅ Conta criada com sucesso! Faça login para continuar.');
+                switchLoginTab('login');
+                document.getElementById('emailInput').value = email;
+            }
+        }
+
+        // ========================================
+        // FUNÇÕES DO FIREBASE
+        // ========================================
+
+        // Registrar novo usuário
+        async function registerUser(email, password, name, wallet, referralCode = null) {
+            if (!isFirebaseConfigured) {
+                alert('Firebase não configurado. Configure as credenciais primeiro.');
+                return null;
+            }
+
+            try {
+                // Cria usuário no Authentication
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // Gera código de referral único
+                const myReferralCode = generateReferralCode(user.uid);
+
+                // Cria perfil no Firestore
+                const userProfile = {
+                    uid: user.uid,
+                    email: email,
+                    name: name,
+                    wallet: wallet || '',
+                    level: 1,
+                    balance: 0,
+                    bonus: 0,
+                    position: 0,
+                    referralCode: myReferralCode,
+                    referredBy: referralCode || null,
+                    referrals: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection('users').doc(user.uid).set(userProfile);
+
+                // Se foi indicado por alguém, atualiza o indicador
+                if (referralCode) {
+                    await addReferral(referralCode, user.uid);
+                }
+
+                console.log('✅ Usuário registrado com sucesso!');
+                return user;
+            } catch (error) {
+                console.error('Erro ao registrar:', error);
+                alert('Erro ao registrar: ' + error.message);
+                return null;
+            }
+        }
+
+        // Gera código de referral
+        function generateReferralCode(uid) {
+            return uid.substring(0, 8).toUpperCase();
+        }
+
+        // Adiciona referral ao indicador
+        async function addReferral(referralCode, newUserId) {
+            try {
+                const usersRef = db.collection('users');
+                const snapshot = await usersRef.where('referralCode', '==', referralCode).get();
+
+                if (!snapshot.empty) {
+                    const referrerDoc = snapshot.docs[0];
+                    await referrerDoc.ref.update({
+                        referrals: firebase.firestore.FieldValue.arrayUnion(newUserId)
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao adicionar referral:', error);
+            }
+        }
+
+        // Busca perfil do usuário
+        async function getUserProfile(uid) {
+            try {
+                const doc = await db.collection('users').doc(uid).get();
+                if (doc.exists) {
+                    return doc.data();
+                }
+                return null;
+            } catch (error) {
+                console.error('Erro ao buscar perfil:', error);
+                return null;
+            }
+        }
+
+        // Atualiza perfil do usuário
+        async function updateUserProfile(uid, data) {
+            try {
+                await db.collection('users').doc(uid).update({
+                    ...data,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                return true;
+            } catch (error) {
+                console.error('Erro ao atualizar perfil:', error);
+                return false;
+            }
+        }
+
+        // Busca transações do usuário
+        async function getUserTransactions(uid) {
+            try {
+                const snapshot = await db.collection('transactions')
+                    .where('userId', '==', uid)
+                    .orderBy('createdAt', 'desc')
+                    .limit(50)
+                    .get();
+
+                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+                console.error('Erro ao buscar transações:', error);
+                return [];
+            }
+        }
+
+        // Adiciona transação
+        async function addTransaction(userId, type, amount, description) {
+            try {
+                await db.collection('transactions').add({
+                    userId: userId,
+                    type: type, // 'cycle', 'bonus', 'deposit', 'withdrawal'
+                    amount: amount,
+                    description: description,
+                    status: 'confirmed',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                return true;
+            } catch (error) {
+                console.error('Erro ao adicionar transação:', error);
+                return false;
+            }
+        }
+
+        // Busca indicados do usuário
+        async function getUserReferrals(uid) {
+            try {
+                const userDoc = await db.collection('users').doc(uid).get();
+                if (!userDoc.exists) return [];
+
+                const userData = userDoc.data();
+                const referralIds = userData.referrals || [];
+
+                if (referralIds.length === 0) return [];
+
+                const referrals = [];
+                for (const refId of referralIds) {
+                    const refDoc = await db.collection('users').doc(refId).get();
+                    if (refDoc.exists) {
+                        referrals.push({ id: refDoc.id, ...refDoc.data() });
+                    }
+                }
+                return referrals;
+            } catch (error) {
+                console.error('Erro ao buscar indicados:', error);
+                return [];
+            }
+        }
+
+        // ========================================
+        // FUNÇÕES DE LOGIN
+        // ========================================
+
         // Handle email login
-        function handleEmailLogin(e) {
+        async function handleEmailLogin(e) {
             e.preventDefault();
             const email = document.getElementById('emailInput').value;
             const password = document.getElementById('passwordInput').value;
 
-            if (email === userData.email && password === userData.password) {
-                showDashboard();
+            // Se Firebase configurado, usa autenticação real
+            if (isFirebaseConfigured) {
+                try {
+                    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                    currentUser = userCredential.user;
+                    userProfile = await getUserProfile(currentUser.uid);
+                    updateDashboardWithUserData(userProfile);
+                    showDashboard();
+                } catch (error) {
+                    console.error('Erro no login:', error);
+                    alert('Email ou senha incorretos!');
+                }
             } else {
-                alert('Email ou senha incorretos!');
+                // Modo demo
+                if (email === demoUserData.email && password === demoUserData.password) {
+                    userProfile = demoUserData;
+                    showDashboard();
+                } else {
+                    alert('Email ou senha incorretos!');
+                }
             }
         }
 
         // Handle MetaMask login
-        function handleMetaMaskLogin() {
-            // Simulate MetaMask connection
-            setTimeout(() => {
-                const confirmed = confirm(`Conectar com a carteira:\n${userData.wallet.substring(0, 10)}...${userData.wallet.substring(38)}\n\nConfirmar?`);
-                if (confirmed) {
-                    showDashboard();
+        async function handleMetaMaskLogin() {
+            if (typeof window.ethereum === 'undefined') {
+                alert('MetaMask não detectado! Por favor, instale a extensão MetaMask.');
+                return;
+            }
+
+            try {
+                // Solicita conexão com MetaMask
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const walletAddress = accounts[0];
+
+                if (isFirebaseConfigured) {
+                    // Busca usuário pelo wallet no Firestore
+                    const usersRef = db.collection('users');
+                    const snapshot = await usersRef.where('wallet', '==', walletAddress.toLowerCase()).get();
+
+                    if (!snapshot.empty) {
+                        // Usuário encontrado
+                        userProfile = snapshot.docs[0].data();
+                        currentUser = { uid: userProfile.uid };
+                        updateDashboardWithUserData(userProfile);
+                        showDashboard();
+                    } else {
+                        // Wallet não cadastrada
+                        const createAccount = confirm('Carteira não cadastrada. Deseja criar uma conta?');
+                        if (createAccount) {
+                            const name = prompt('Digite seu nome:');
+                            if (name) {
+                                // Cria conta com email temporário baseado no wallet
+                                const tempEmail = walletAddress.substring(2, 10) + '@7iatlas.temp';
+                                const tempPassword = walletAddress.substring(0, 20);
+                                await registerUser(tempEmail, tempPassword, name, walletAddress.toLowerCase());
+                                alert('Conta criada! Faça login novamente.');
+                            }
+                        }
+                    }
+                } else {
+                    // Modo demo
+                    const confirmed = confirm(`Conectar com a carteira:\n${walletAddress.substring(0, 10)}...${walletAddress.substring(38)}\n\nConfirmar?`);
+                    if (confirmed) {
+                        userProfile = demoUserData;
+                        userProfile.wallet = walletAddress;
+                        showDashboard();
+                    }
                 }
-            }, 500);
+            } catch (error) {
+                console.error('Erro ao conectar MetaMask:', error);
+                alert('Erro ao conectar com MetaMask: ' + error.message);
+            }
+        }
+
+        // Atualiza dashboard com dados do usuário
+        function updateDashboardWithUserData(profile) {
+            if (!profile) return;
+
+            // Atualiza nome do usuário
+            const userName = profile.name || 'Usuário';
+            const userInitials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+            // Header e sidebar
+            document.querySelector('.user-name').textContent = userName;
+            document.querySelector('.user-level').textContent = `Nível ${profile.level || 1} • Pioneer`;
+            document.querySelector('.user-avatar').textContent = userInitials;
+            document.querySelector('.page-subtitle').textContent = `Bem-vindo de volta, ${userName.split(' ')[0]}! 👋`;
+
+            // Estatísticas
+            const stats = document.querySelectorAll('.stat-value');
+            if (stats.length >= 4) {
+                stats[0].textContent = `$${(profile.balance || 0).toLocaleString()}`;
+                stats[1].textContent = `$${(profile.bonus || 0).toLocaleString()}`;
+                stats[2].textContent = `#${profile.position || 0}`;
+                stats[3].textContent = profile.referrals?.length || 0;
+            }
+
+            // Carteira
+            if (profile.wallet) {
+                const walletAddress = document.querySelector('.wallet-address');
+                if (walletAddress) walletAddress.textContent = profile.wallet;
+            }
+
+            // Link de referral
+            if (profile.referralCode) {
+                const referralInput = document.getElementById('referralLink');
+                if (referralInput) referralInput.value = `https://7iatlas.com/ref/${profile.referralCode}`;
+            }
+
+            // Configurações
+            const settingsName = document.querySelector('.settings-section .settings-item:nth-child(1) p');
+            const settingsEmail = document.querySelector('.settings-section .settings-item:nth-child(2) p');
+            if (settingsName) settingsName.textContent = userName;
+            if (settingsEmail) settingsEmail.textContent = profile.email || '';
         }
 
         // Show dashboard
@@ -2087,11 +2455,35 @@
         }
 
         // Handle logout
-        function handleLogout() {
+        async function handleLogout() {
+            if (isFirebaseConfigured && auth) {
+                try {
+                    await auth.signOut();
+                } catch (error) {
+                    console.error('Erro ao fazer logout:', error);
+                }
+            }
+
+            currentUser = null;
+            userProfile = null;
             document.getElementById('dashboard').classList.remove('active');
             document.getElementById('loginPage').style.display = 'flex';
             document.getElementById('emailInput').value = '';
             document.getElementById('passwordInput').value = '';
+        }
+
+        // Verifica se usuário já está logado (persistência Firebase)
+        if (isFirebaseConfigured) {
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    currentUser = user;
+                    userProfile = await getUserProfile(user.uid);
+                    if (userProfile) {
+                        updateDashboardWithUserData(userProfile);
+                        showDashboard();
+                    }
+                }
+            });
         }
 
         // Show page
