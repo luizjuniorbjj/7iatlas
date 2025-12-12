@@ -1,0 +1,2159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>7i ATLAS - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: rgba(18, 18, 26, 0.8);
+            --bg-card-solid: #12121a;
+            --gradient-start: #2F00FF;
+            --gradient-mid: #8B00FF;
+            --gradient-end: #FF00FF;
+            --pink-star: #FF1493;
+            --green-aurora: #00FFA3;
+            --green-dark: #00cc7a;
+            --gold: #FFD700;
+            --red: #ff4757;
+            --cyan: #00d9ff;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --text-muted: #6a6a7a;
+            --border-color: rgba(255,255,255,0.1);
+            --glass-bg: rgba(255,255,255,0.03);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ===== LOGIN PAGE ===== */
+        .login-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(ellipse at center, rgba(47, 0, 255, 0.15) 0%, transparent 70%);
+            padding: 2rem;
+            position: relative;
+        }
+
+        .login-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: floatParticle 20s infinite linear;
+        }
+
+        @keyframes floatParticle {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.5; }
+            90% { opacity: 0.5; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 3rem 2.5rem;
+            text-align: center;
+        }
+
+        .login-logo {
+            width: 200px;
+            margin-bottom: 1.5rem;
+            animation: logoPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(139, 0, 255, 0.5)); }
+            50% { filter: drop-shadow(0 0 40px rgba(255, 0, 255, 0.7)); }
+        }
+
+        .login-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        .login-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            background: var(--glass-bg);
+            border-radius: 12px;
+            padding: 0.25rem;
+        }
+
+        .login-tab {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .login-tab.active {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
+            color: white;
+        }
+
+        .login-tab:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        .login-form {
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .login-form.active {
+            display: flex;
+        }
+
+        .form-group {
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gradient-mid);
+            box-shadow: 0 0 20px rgba(139, 0, 255, 0.2);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .login-btn {
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .login-btn-primary {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            box-shadow: 0 10px 30px rgba(139, 0, 255, 0.3);
+        }
+
+        .login-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(139, 0, 255, 0.4);
+        }
+
+        .login-btn-metamask {
+            background: linear-gradient(135deg, #f6851b, #e2761b);
+            color: white;
+            box-shadow: 0 10px 30px rgba(246, 133, 27, 0.3);
+        }
+
+        .login-btn-metamask:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(246, 133, 27, 0.4);
+        }
+
+        .login-divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .login-divider::before,
+        .login-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .login-footer {
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .login-footer a {
+            color: var(--pink-star);
+            text-decoration: none;
+        }
+
+        /* ===== DASHBOARD LAYOUT ===== */
+        .dashboard {
+            display: none;
+            min-height: 100vh;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100vh;
+            background: var(--bg-card-solid);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: transform 0.3s;
+        }
+
+        .sidebar-logo {
+            height: 40px;
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-item:hover {
+            background: var(--glass-bg);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(47, 0, 255, 0.2), rgba(255, 0, 255, 0.2));
+            color: var(--text-primary);
+            border: 1px solid rgba(139, 0, 255, 0.3);
+        }
+
+        .nav-item .icon {
+            font-size: 1.3rem;
+        }
+
+        .sidebar-footer {
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 12px;
+            background: var(--glass-bg);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+        }
+
+        .user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-level {
+            font-size: 0.75rem;
+            color: var(--green-aurora);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .notification-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .notification-btn:hover {
+            border-color: var(--gradient-mid);
+            color: var(--text-primary);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: var(--red);
+            border-radius: 50%;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon.green { background: rgba(0, 255, 163, 0.15); }
+        .stat-icon.gold { background: rgba(255, 215, 0, 0.15); }
+        .stat-icon.purple { background: rgba(139, 0, 255, 0.15); }
+        .stat-icon.cyan { background: rgba(0, 217, 255, 0.15); }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value.green { color: var(--green-aurora); }
+        .stat-value.gold { color: var(--gold); }
+        .stat-value.purple { color: var(--gradient-mid); }
+        .stat-value.cyan { color: var(--cyan); }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .stat-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+        }
+
+        .stat-change.positive {
+            color: var(--green-aurora);
+            background: rgba(0, 255, 163, 0.1);
+        }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .card-action {
+            color: var(--pink-star);
+            font-size: 0.85rem;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .card-action:hover {
+            text-decoration: underline;
+        }
+
+        /* Level Progress */
+        .level-progress {
+            margin-bottom: 2rem;
+        }
+
+        .level-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .level-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
+            border-radius: 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .level-stats {
+            text-align: right;
+        }
+
+        .level-stats .value {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            color: var(--green-aurora);
+        }
+
+        .level-stats .label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar-container {
+            height: 12px;
+            background: var(--glass-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+            border-radius: 10px;
+            transition: width 1s ease;
+        }
+
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Queue List */
+        .queue-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .queue-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--glass-bg);
+            border-radius: 12px;
+            transition: all 0.3s;
+        }
+
+        .queue-item:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .queue-level {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .queue-level.active {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
+        }
+
+        .queue-level.waiting {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .queue-level.completed {
+            background: rgba(0, 255, 163, 0.2);
+            color: var(--green-aurora);
+        }
+
+        .queue-info {
+            flex: 1;
+        }
+
+        .queue-info .title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .queue-info .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .queue-position {
+            text-align: right;
+        }
+
+        .queue-position .pos {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .queue-position .total {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Activity List */
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.cycle { background: rgba(0, 255, 163, 0.15); }
+        .activity-icon.bonus { background: rgba(255, 215, 0, 0.15); }
+        .activity-icon.deposit { background: rgba(0, 217, 255, 0.15); }
+        .activity-icon.referral { background: rgba(255, 20, 147, 0.15); }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .activity-amount {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .activity-amount.positive { color: var(--green-aurora); }
+
+        /* ===== REFERRALS PAGE ===== */
+        .page-content {
+            display: none;
+        }
+
+        .page-content.active {
+            display: block;
+        }
+
+        .referral-link-card {
+            background: linear-gradient(135deg, rgba(47, 0, 255, 0.2), rgba(255, 0, 255, 0.2));
+            border: 1px solid rgba(139, 0, 255, 0.3);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .referral-link-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .referral-link-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .referral-link-box {
+            display: flex;
+            gap: 0.5rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .referral-link-input {
+            flex: 1;
+            padding: 1rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .copy-btn {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .referral-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .referral-stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .referral-stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .referral-stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .referrals-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 0.5rem;
+        }
+
+        .referrals-table th {
+            text-align: left;
+            padding: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .referrals-table td {
+            padding: 1rem;
+            background: var(--glass-bg);
+        }
+
+        .referrals-table tr td:first-child {
+            border-radius: 12px 0 0 12px;
+        }
+
+        .referrals-table tr td:last-child {
+            border-radius: 0 12px 12px 0;
+        }
+
+        .referral-user {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .referral-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            background: rgba(0, 255, 163, 0.15);
+            color: var(--green-aurora);
+        }
+
+        .status-badge.pending {
+            background: rgba(255, 215, 0, 0.15);
+            color: var(--gold);
+        }
+
+        /* ===== HISTORY PAGE ===== */
+        .history-filters {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.75rem 1.25rem;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--gradient-mid);
+            color: var(--text-primary);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
+            border-color: transparent;
+            color: white;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 0.5rem;
+        }
+
+        .history-table th {
+            text-align: left;
+            padding: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .history-table td {
+            padding: 1rem;
+            background: var(--glass-bg);
+        }
+
+        .history-table tr td:first-child {
+            border-radius: 12px 0 0 12px;
+        }
+
+        .history-table tr td:last-child {
+            border-radius: 0 12px 12px 0;
+        }
+
+        .tx-type {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .tx-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tx-link {
+            color: var(--pink-star);
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+        .tx-link:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== WALLET PAGE ===== */
+        .wallet-balance-card {
+            background: linear-gradient(135deg, rgba(0, 255, 163, 0.1), rgba(0, 200, 150, 0.05));
+            border: 1px solid rgba(0, 255, 163, 0.3);
+            border-radius: 24px;
+            padding: 2.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .wallet-balance-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .wallet-balance-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--green-aurora);
+            margin-bottom: 0.5rem;
+        }
+
+        .wallet-balance-usd {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .wallet-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .wallet-btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .wallet-btn-deposit {
+            background: linear-gradient(135deg, var(--green-aurora), var(--green-dark));
+            color: #000;
+        }
+
+        .wallet-btn-deposit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(0, 255, 163, 0.3);
+        }
+
+        .wallet-address-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .wallet-address-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .wallet-address {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            word-break: break-all;
+            background: var(--glass-bg);
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        /* ===== SETTINGS PAGE ===== */
+        .settings-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item-info h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .settings-item-info p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 26px;
+            background: var(--glass-bg);
+            border-radius: 13px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--green-aurora);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            left: 27px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            border-radius: 12px;
+            color: var(--red);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 71, 87, 0.2);
+        }
+
+        /* ===== MOBILE STYLES ===== */
+        .mobile-header {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--bg-card-solid);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 1rem;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 99;
+        }
+
+        .mobile-header .logo {
+            height: 30px;
+        }
+
+        .menu-toggle {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: var(--bg-card-solid);
+            border-top: 1px solid var(--border-color);
+            padding: 0.5rem;
+            z-index: 99;
+        }
+
+        .mobile-nav-items {
+            display: flex;
+            justify-content: space-around;
+            height: 100%;
+        }
+
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: color 0.3s;
+            padding: 0.5rem;
+        }
+
+        .mobile-nav-item .icon {
+            font-size: 1.3rem;
+        }
+
+        .mobile-nav-item.active {
+            color: var(--pink-star);
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 98;
+        }
+
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            .referral-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 80px 1rem 90px;
+            }
+            .mobile-header {
+                display: flex;
+            }
+            .mobile-nav {
+                display: block;
+            }
+            .overlay.open {
+                display: block;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+            .stat-card {
+                padding: 1rem;
+            }
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            .page-title {
+                font-size: 1.3rem;
+            }
+            .referral-link-box {
+                flex-direction: column;
+            }
+            .wallet-balance-value {
+                font-size: 2.5rem;
+            }
+            .wallet-actions {
+                flex-direction: column;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <!-- ===== LOGIN PAGE ===== -->
+    <div class="login-page" id="loginPage">
+        <div class="login-particles" id="loginParticles"></div>
+        <div class="login-container">
+            <div class="login-card">
+                <img src="logo.png" alt="7i Atlas" class="login-logo">
+                <h1 class="login-title">Bem-vindo de volta</h1>
+                <p class="login-subtitle">Entre na sua conta para continuar</p>
+
+                <div class="login-tabs">
+                    <button class="login-tab active" onclick="switchLoginTab('email')">📧 Email</button>
+                    <button class="login-tab" onclick="switchLoginTab('wallet')">🦊 MetaMask</button>
+                </div>
+
+                <!-- Email Login -->
+                <form class="login-form active" id="emailForm" onsubmit="handleEmailLogin(event)">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-input" id="emailInput" placeholder="seu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Senha</label>
+                        <input type="password" class="form-input" id="passwordInput" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="login-btn login-btn-primary">
+                        Entrar
+                    </button>
+                </form>
+
+                <!-- MetaMask Login -->
+                <div class="login-form" id="walletForm">
+                    <button type="button" class="login-btn login-btn-metamask" onclick="handleMetaMaskLogin()">
+                        🦊 Conectar MetaMask
+                    </button>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 1rem;">
+                        Conecte sua carteira MetaMask para acessar o sistema de forma segura.
+                    </p>
+                </div>
+
+                <div class="login-footer">
+                    Não tem conta? <a href="#">Criar conta</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="dashboard" id="dashboard">
+        <!-- Mobile Header -->
+        <div class="mobile-header">
+            <img src="logo.png" alt="7i Atlas" class="logo">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+        </div>
+
+        <!-- Overlay -->
+        <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <img src="logo.png" alt="7i Atlas" class="sidebar-logo">
+            
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
+                    <span class="icon">🏠</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="showPage('referrals')" data-page="referrals">
+                    <span class="icon">👥</span>
+                    <span>Indicações</span>
+                </div>
+                <div class="nav-item" onclick="showPage('history')" data-page="history">
+                    <span class="icon">📜</span>
+                    <span>Histórico</span>
+                </div>
+                <div class="nav-item" onclick="showPage('wallet')" data-page="wallet">
+                    <span class="icon">💰</span>
+                    <span>Carteira</span>
+                </div>
+                <div class="nav-item" onclick="showPage('settings')" data-page="settings">
+                    <span class="icon">⚙️</span>
+                    <span>Configurações</span>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">LJ</div>
+                    <div class="user-details">
+                        <div class="user-name">Luiz Junior</div>
+                        <div class="user-level">Nível 4 • Pioneer</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div class="page-content active" id="page-dashboard">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Dashboard</h1>
+                        <p class="page-subtitle">Bem-vindo de volta, Luiz! 👋</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="notification-btn">
+                            🔔
+                            <span class="notification-badge">3</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card animate-in delay-1">
+                        <div class="stat-icon green">💰</div>
+                        <div class="stat-value green">$2,340</div>
+                        <div class="stat-label">Saldo Total</div>
+                        <div class="stat-change positive">↑ +$320 esta semana</div>
+                    </div>
+                    <div class="stat-card animate-in delay-2">
+                        <div class="stat-icon gold">🎁</div>
+                        <div class="stat-value gold">$580</div>
+                        <div class="stat-label">Bônus Indicação</div>
+                        <div class="stat-change positive">↑ +$80 esta semana</div>
+                    </div>
+                    <div class="stat-card animate-in delay-3">
+                        <div class="stat-icon purple">📊</div>
+                        <div class="stat-value purple">#23</div>
+                        <div class="stat-label">Posição Nível 4</div>
+                    </div>
+                    <div class="stat-card animate-in delay-4">
+                        <div class="stat-icon cyan">👥</div>
+                        <div class="stat-value cyan">12</div>
+                        <div class="stat-label">Indicados Ativos</div>
+                        <div class="stat-change positive">↑ +2 esta semana</div>
+                    </div>
+                </div>
+
+                <div class="content-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Sua Posição nas Filas</h3>
+                            <span class="card-action" onclick="showPage('history')">Ver histórico →</span>
+                        </div>
+
+                        <div class="level-progress">
+                            <div class="level-header">
+                                <div class="level-badge">⭐ Nível 4</div>
+                                <div class="level-stats">
+                                    <div class="value">$160</div>
+                                    <div class="label">Ganho por ciclo</div>
+                                </div>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" style="width: 65%;"></div>
+                            </div>
+                            <div class="progress-labels">
+                                <span>Posição #23 de 156</span>
+                                <span>~2 dias para ciclar</span>
+                            </div>
+                        </div>
+
+                        <div class="queue-list">
+                            <div class="queue-item">
+                                <div class="queue-level completed">✓</div>
+                                <div class="queue-info">
+                                    <div class="title">Nível 1 - $10</div>
+                                    <div class="subtitle">Completado em 12/12/2025</div>
+                                </div>
+                                <div class="queue-position">
+                                    <div class="pos" style="color: var(--green-aurora);">Ciclado</div>
+                                    <div class="total">+$20</div>
+                                </div>
+                            </div>
+                            <div class="queue-item">
+                                <div class="queue-level completed">✓</div>
+                                <div class="queue-info">
+                                    <div class="title">Nível 2 - $20</div>
+                                    <div class="subtitle">Completado em 11/12/2025</div>
+                                </div>
+                                <div class="queue-position">
+                                    <div class="pos" style="color: var(--green-aurora);">Ciclado</div>
+                                    <div class="total">+$40</div>
+                                </div>
+                            </div>
+                            <div class="queue-item">
+                                <div class="queue-level completed">✓</div>
+                                <div class="queue-info">
+                                    <div class="title">Nível 3 - $40</div>
+                                    <div class="subtitle">Completado em 10/12/2025</div>
+                                </div>
+                                <div class="queue-position">
+                                    <div class="pos" style="color: var(--green-aurora);">Ciclado</div>
+                                    <div class="total">+$80</div>
+                                </div>
+                            </div>
+                            <div class="queue-item">
+                                <div class="queue-level active">4</div>
+                                <div class="queue-info">
+                                    <div class="title">Nível 4 - $80</div>
+                                    <div class="subtitle">Em progresso...</div>
+                                </div>
+                                <div class="queue-position">
+                                    <div class="pos">#23</div>
+                                    <div class="total">de 156</div>
+                                </div>
+                            </div>
+                            <div class="queue-item">
+                                <div class="queue-level waiting">5</div>
+                                <div class="queue-info">
+                                    <div class="title">Nível 5 - $160</div>
+                                    <div class="subtitle">Aguardando nível 4</div>
+                                </div>
+                                <div class="queue-position">
+                                    <div class="pos" style="color: var(--text-muted);">—</div>
+                                    <div class="total">Bloqueado</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Atividade Recente</h3>
+                            <span class="card-action" onclick="showPage('history')">Ver tudo →</span>
+                        </div>
+
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <div class="activity-icon cycle">🔄</div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Ciclo Completado - Nível 3</div>
+                                    <div class="activity-time">Há 2 horas</div>
+                                </div>
+                                <div class="activity-amount positive">+$80.00</div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon bonus">🎁</div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Bônus - Maria Santos ciclou</div>
+                                    <div class="activity-time">Há 5 horas</div>
+                                </div>
+                                <div class="activity-amount positive">+$16.00</div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon referral">👥</div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Novo indicado - Carlos Lima</div>
+                                    <div class="activity-time">Há 1 dia</div>
+                                </div>
+                                <div class="activity-amount" style="color: var(--cyan);">Ativo</div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon cycle">🔄</div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Ciclo Completado - Nível 2</div>
+                                    <div class="activity-time">Há 1 dia</div>
+                                </div>
+                                <div class="activity-amount positive">+$40.00</div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon bonus">🎁</div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Bônus - Pedro Costa ciclou</div>
+                                    <div class="activity-time">Há 2 dias</div>
+                                </div>
+                                <div class="activity-amount positive">+$8.00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Referrals Page -->
+            <div class="page-content" id="page-referrals">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Indicações</h1>
+                        <p class="page-subtitle">Gerencie sua rede e acompanhe seus bônus</p>
+                    </div>
+                </div>
+
+                <div class="referral-link-card">
+                    <h3 class="referral-link-title">🔗 Seu Link de Indicação</h3>
+                    <p class="referral-link-subtitle">Compartilhe e ganhe 40% de bônus toda vez que seu indicado ciclar!</p>
+                    <div class="referral-link-box">
+                        <input type="text" class="referral-link-input" value="https://7iatlas.com/ref/luizjunior" readonly id="referralLink">
+                        <button class="copy-btn" onclick="copyReferralLink()">📋 Copiar</button>
+                    </div>
+                </div>
+
+                <div class="referral-stats">
+                    <div class="referral-stat-card">
+                        <div class="referral-stat-value" style="color: var(--cyan);">12</div>
+                        <div class="referral-stat-label">Total de Indicados</div>
+                    </div>
+                    <div class="referral-stat-card">
+                        <div class="referral-stat-value" style="color: var(--green-aurora);">10</div>
+                        <div class="referral-stat-label">Indicados Ativos</div>
+                    </div>
+                    <div class="referral-stat-card">
+                        <div class="referral-stat-value" style="color: var(--gold);">$580</div>
+                        <div class="referral-stat-label">Total em Bônus</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Seus Indicados</h3>
+                    </div>
+                    <table class="referrals-table">
+                        <thead>
+                            <tr>
+                                <th>Usuário</th>
+                                <th>Nível</th>
+                                <th>Status</th>
+                                <th>Bônus Gerado</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="referral-user">
+                                        <div class="referral-avatar">MS</div>
+                                        <span>Maria Santos</span>
+                                    </div>
+                                </td>
+                                <td><span style="color: var(--gradient-mid);">Nível 4</span></td>
+                                <td><span class="status-badge active">Ativo</span></td>
+                                <td style="color: var(--gold);">$124.00</td>
+                                <td style="color: var(--text-secondary);">05/12/2025</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="referral-user">
+                                        <div class="referral-avatar">PC</div>
+                                        <span>Pedro Costa</span>
+                                    </div>
+                                </td>
+                                <td><span style="color: var(--gradient-mid);">Nível 3</span></td>
+                                <td><span class="status-badge active">Ativo</span></td>
+                                <td style="color: var(--gold);">$88.00</td>
+                                <td style="color: var(--text-secondary);">06/12/2025</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="referral-user">
+                                        <div class="referral-avatar">CL</div>
+                                        <span>Carlos Lima</span>
+                                    </div>
+                                </td>
+                                <td><span style="color: var(--gradient-mid);">Nível 2</span></td>
+                                <td><span class="status-badge active">Ativo</span></td>
+                                <td style="color: var(--gold);">$52.00</td>
+                                <td style="color: var(--text-secondary);">08/12/2025</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="referral-user">
+                                        <div class="referral-avatar">AF</div>
+                                        <span>Ana Ferreira</span>
+                                    </div>
+                                </td>
+                                <td><span style="color: var(--gradient-mid);">Nível 2</span></td>
+                                <td><span class="status-badge active">Ativo</span></td>
+                                <td style="color: var(--gold);">$48.00</td>
+                                <td style="color: var(--text-secondary);">09/12/2025</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="referral-user">
+                                        <div class="referral-avatar">RO</div>
+                                        <span>Roberto Oliveira</span>
+                                    </div>
+                                </td>
+                                <td><span style="color: var(--gradient-mid);">Nível 1</span></td>
+                                <td><span class="status-badge active">Ativo</span></td>
+                                <td style="color: var(--gold);">$36.00</td>
+                                <td style="color: var(--text-secondary);">10/12/2025</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="referral-user">
+                                        <div class="referral-avatar">JS</div>
+                                        <span>Julia Silva</span>
+                                    </div>
+                                </td>
+                                <td><span style="color: var(--gradient-mid);">Nível 1</span></td>
+                                <td><span class="status-badge pending">Pendente</span></td>
+                                <td style="color: var(--text-muted);">$0.00</td>
+                                <td style="color: var(--text-secondary);">11/12/2025</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- History Page -->
+            <div class="page-content" id="page-history">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Histórico</h1>
+                        <p class="page-subtitle">Todas as suas transações e movimentações</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="history-filters">
+                        <button class="filter-btn active" onclick="filterHistory('all', this)">Todos</button>
+                        <button class="filter-btn" onclick="filterHistory('cycles', this)">🔄 Ciclos</button>
+                        <button class="filter-btn" onclick="filterHistory('bonus', this)">🎁 Bônus</button>
+                        <button class="filter-btn" onclick="filterHistory('deposits', this)">💳 Depósitos</button>
+                    </div>
+
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Data</th>
+                                <th>Status</th>
+                                <th>TX</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="tx-type">
+                                        <div class="tx-icon" style="background: rgba(0, 255, 163, 0.15);">🔄</div>
+                                        <span>Ciclo</span>
+                                    </div>
+                                </td>
+                                <td>Ciclo Nível 3 completado</td>
+                                <td style="color: var(--green-aurora);">+$80.00</td>
+                                <td style="color: var(--text-secondary);">11/12/2025 14:32</td>
+                                <td><span class="status-badge active">Confirmado</span></td>
+                                <td><a href="https://bscscan.com/tx/0x123..." target="_blank" class="tx-link">Ver TX</a></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="tx-type">
+                                        <div class="tx-icon" style="background: rgba(255, 215, 0, 0.15);">🎁</div>
+                                        <span>Bônus</span>
+                                    </div>
+                                </td>
+                                <td>Bônus indicação - Maria Santos</td>
+                                <td style="color: var(--gold);">+$16.00</td>
+                                <td style="color: var(--text-secondary);">11/12/2025 12:15</td>
+                                <td><span class="status-badge active">Confirmado</span></td>
+                                <td><a href="https://bscscan.com/tx/0x456..." target="_blank" class="tx-link">Ver TX</a></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="tx-type">
+                                        <div class="tx-icon" style="background: rgba(0, 255, 163, 0.15);">🔄</div>
+                                        <span>Ciclo</span>
+                                    </div>
+                                </td>
+                                <td>Ciclo Nível 2 completado</td>
+                                <td style="color: var(--green-aurora);">+$40.00</td>
+                                <td style="color: var(--text-secondary);">10/12/2025 18:45</td>
+                                <td><span class="status-badge active">Confirmado</span></td>
+                                <td><a href="https://bscscan.com/tx/0x789..." target="_blank" class="tx-link">Ver TX</a></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="tx-type">
+                                        <div class="tx-icon" style="background: rgba(255, 215, 0, 0.15);">🎁</div>
+                                        <span>Bônus</span>
+                                    </div>
+                                </td>
+                                <td>Bônus indicação - Pedro Costa</td>
+                                <td style="color: var(--gold);">+$8.00</td>
+                                <td style="color: var(--text-secondary);">10/12/2025 15:22</td>
+                                <td><span class="status-badge active">Confirmado</span></td>
+                                <td><a href="https://bscscan.com/tx/0xabc..." target="_blank" class="tx-link">Ver TX</a></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="tx-type">
+                                        <div class="tx-icon" style="background: rgba(0, 217, 255, 0.15);">💳</div>
+                                        <span>Depósito</span>
+                                    </div>
+                                </td>
+                                <td>Depósito inicial - Ativação</td>
+                                <td style="color: var(--cyan);">$10.00</td>
+                                <td style="color: var(--text-secondary);">05/12/2025 10:00</td>
+                                <td><span class="status-badge active">Confirmado</span></td>
+                                <td><a href="https://bscscan.com/tx/0xdef..." target="_blank" class="tx-link">Ver TX</a></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="tx-type">
+                                        <div class="tx-icon" style="background: rgba(0, 255, 163, 0.15);">🔄</div>
+                                        <span>Ciclo</span>
+                                    </div>
+                                </td>
+                                <td>Ciclo Nível 1 completado</td>
+                                <td style="color: var(--green-aurora);">+$20.00</td>
+                                <td style="color: var(--text-secondary);">06/12/2025 09:30</td>
+                                <td><span class="status-badge active">Confirmado</span></td>
+                                <td><a href="https://bscscan.com/tx/0xghi..." target="_blank" class="tx-link">Ver TX</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Wallet Page -->
+            <div class="page-content" id="page-wallet">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Carteira</h1>
+                        <p class="page-subtitle">Gerencie seus fundos USDT</p>
+                    </div>
+                </div>
+
+                <div class="wallet-balance-card">
+                    <p class="wallet-balance-label">Saldo Disponível</p>
+                    <h2 class="wallet-balance-value">$2,340.00</h2>
+                    <p class="wallet-balance-usd">≈ 2,340 USDT</p>
+                    <div class="wallet-actions">
+                        <button class="wallet-btn wallet-btn-deposit">
+                            💳 Depositar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="wallet-address-card">
+                    <p class="wallet-address-label">🦊 Carteira Conectada (MetaMask)</p>
+                    <div class="wallet-address">0x75d1a8ac59003088c60a20bde8953cbecfe41669</div>
+                </div>
+
+                <div class="content-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Resumo</h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div style="display: flex; justify-content: space-between; padding: 1rem; background: var(--glass-bg); border-radius: 10px;">
+                                <span style="color: var(--text-secondary);">Total Depositado</span>
+                                <span style="font-family: Orbitron; font-weight: 600;">$10.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 1rem; background: var(--glass-bg); border-radius: 10px;">
+                                <span style="color: var(--text-secondary);">Total Ganho (Ciclos)</span>
+                                <span style="font-family: Orbitron; font-weight: 600; color: var(--green-aurora);">$1,760.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 1rem; background: var(--glass-bg); border-radius: 10px;">
+                                <span style="color: var(--text-secondary);">Total Bônus</span>
+                                <span style="font-family: Orbitron; font-weight: 600; color: var(--gold);">$580.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 1rem; background: rgba(0, 255, 163, 0.1); border-radius: 10px; border: 1px solid rgba(0, 255, 163, 0.3);">
+                                <span style="font-weight: 600;">Lucro Total</span>
+                                <span style="font-family: Orbitron; font-weight: 700; color: var(--green-aurora);">$2,330.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Informações da Rede</h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div style="display: flex; justify-content: space-between; padding: 1rem; background: var(--glass-bg); border-radius: 10px;">
+                                <span style="color: var(--text-secondary);">Rede</span>
+                                <span style="color: var(--gold);">BSC (BEP-20)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 1rem; background: var(--glass-bg); border-radius: 10px;">
+                                <span style="color: var(--text-secondary);">Token</span>
+                                <span>USDT</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 1rem; background: var(--glass-bg); border-radius: 10px;">
+                                <span style="color: var(--text-secondary);">Contrato</span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">0x55d398...7955</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 1rem; background: var(--glass-bg); border-radius: 10px;">
+                                <span style="color: var(--text-secondary);">Taxa de Saque</span>
+                                <span style="color: var(--green-aurora);">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div class="page-content" id="page-settings">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Configurações</h1>
+                        <p class="page-subtitle">Gerencie sua conta e preferências</p>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3 class="settings-section-title">👤 Perfil</h3>
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <h4>Nome</h4>
+                            <p>Luiz Junior</p>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <h4>Email</h4>
+                            <p>luizjuniorbjj@gmail.com</p>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <h4>Carteira</h4>
+                            <p style="font-size: 0.75rem;">0x75d1a8ac59003088c60a20bde8953cbecfe41669</p>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <h4>Membro desde</h4>
+                            <p>05 de Dezembro, 2025</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3 class="settings-section-title">🔔 Notificações</h3>
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <h4>Notificações de Ciclo</h4>
+                            <p>Receber quando completar um ciclo</p>
+                        </div>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <h4>Notificações de Bônus</h4>
+                            <p>Receber quando ganhar bônus de indicação</p>
+                        </div>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <h4>Novidades do Sistema</h4>
+                            <p>Receber atualizações e novidades</p>
+                        </div>
+                        <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3 class="settings-section-title">🔒 Segurança</h3>
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <h4>Autenticação 2FA</h4>
+                            <p>Adicione uma camada extra de segurança</p>
+                        </div>
+                        <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                </div>
+
+                <button class="logout-btn" onclick="handleLogout()">
+                    🚪 Sair da Conta
+                </button>
+            </div>
+        </main>
+
+        <!-- Mobile Navigation -->
+        <nav class="mobile-nav">
+            <div class="mobile-nav-items">
+                <div class="mobile-nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
+                    <span class="icon">🏠</span>
+                    <span>Home</span>
+                </div>
+                <div class="mobile-nav-item" onclick="showPage('referrals')" data-page="referrals">
+                    <span class="icon">👥</span>
+                    <span>Indicações</span>
+                </div>
+                <div class="mobile-nav-item" onclick="showPage('history')" data-page="history">
+                    <span class="icon">📜</span>
+                    <span>Histórico</span>
+                </div>
+                <div class="mobile-nav-item" onclick="showPage('wallet')" data-page="wallet">
+                    <span class="icon">💰</span>
+                    <span>Carteira</span>
+                </div>
+                <div class="mobile-nav-item" onclick="showPage('settings')" data-page="settings">
+                    <span class="icon">⚙️</span>
+                    <span>Config</span>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        // User data
+        const userData = {
+            email: 'luizjuniorbjj@gmail.com',
+            password: '110677Pa*',
+            wallet: '0x75d1a8ac59003088c60a20bde8953cbecfe41669',
+            name: 'Luiz Junior'
+        };
+
+        // Create particles
+        function createParticles() {
+            const container = document.getElementById('loginParticles');
+            if (!container) return;
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 20) + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // Switch login tabs
+        function switchLoginTab(tab) {
+            document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
+            
+            if (tab === 'email') {
+                document.querySelector('.login-tab:nth-child(1)').classList.add('active');
+                document.getElementById('emailForm').classList.add('active');
+            } else {
+                document.querySelector('.login-tab:nth-child(2)').classList.add('active');
+                document.getElementById('walletForm').classList.add('active');
+            }
+        }
+
+        // Handle email login
+        function handleEmailLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+
+            if (email === userData.email && password === userData.password) {
+                showDashboard();
+            } else {
+                alert('Email ou senha incorretos!');
+            }
+        }
+
+        // Handle MetaMask login
+        function handleMetaMaskLogin() {
+            // Simulate MetaMask connection
+            setTimeout(() => {
+                const confirmed = confirm(`Conectar com a carteira:\n${userData.wallet.substring(0, 10)}...${userData.wallet.substring(38)}\n\nConfirmar?`);
+                if (confirmed) {
+                    showDashboard();
+                }
+            }, 500);
+        }
+
+        // Show dashboard
+        function showDashboard() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('dashboard').classList.add('active');
+        }
+
+        // Handle logout
+        function handleLogout() {
+            document.getElementById('dashboard').classList.remove('active');
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('emailInput').value = '';
+            document.getElementById('passwordInput').value = '';
+        }
+
+        // Show page
+        function showPage(page) {
+            // Hide all pages
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            
+            // Show selected page
+            document.getElementById('page-' + page).classList.add('active');
+
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.page === page) {
+                    item.classList.add('active');
+                }
+            });
+
+            // Update mobile nav
+            document.querySelectorAll('.mobile-nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.page === page) {
+                    item.classList.add('active');
+                }
+            });
+
+            // Close sidebar on mobile
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('overlay').classList.remove('open');
+            }
+        }
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('open');
+        }
+
+        // Copy referral link
+        function copyReferralLink() {
+            const input = document.getElementById('referralLink');
+            input.select();
+            document.execCommand('copy');
+            
+            const btn = document.querySelector('.copy-btn');
+            const originalText = btn.textContent;
+            btn.textContent = '✓ Copiado!';
+            btn.style.background = 'var(--green-aurora)';
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        }
+
+        // Filter history
+        function filterHistory(filter, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // In a real app, this would filter the table
+        }
+    </script>
+</body>
+</html>
