@@ -1,0 +1,244 @@
+// 7iATLAS - Schema do Banco de Dados
+// Sistema de Redistribuição Progressiva
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum TransactionType {
+  DEPOSIT
+  CYCLE_REWARD
+  BONUS_REFERRAL
+  WITHDRAWAL
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum QueueStatus {
+  WAITING
+  PROCESSING
+  COMPLETED
+}
+
+enum CyclePosition {
+  RECEIVER    // Posição 0 - Recebedor (ganha 2x)
+  DONATE_1    // Posição 1 - Doa para recebedor
+  ADVANCE_1   // Posição 2 - Avança para próximo nível
+  DONATE_2    // Posição 3 - Doa para recebedor
+  ADVANCE_2   // Posição 4 - Avança para próximo nível
+  COMMUNITY   // Posição 5 - Distribuição comunitária
+  REENTRY     // Posição 6 - Reentrada no mesmo nível
+}
+
+// ==========================================
+// MODELS
+// ==========================================
+
+model User {
+  id              String      @id @default(cuid())
+  email           String?     @unique
+  passwordHash    String?
+  walletAddress   String      @unique
+  name            String?
+  referralCode    String      @unique @default(cuid())
+
+  // Relacionamento de indicação
+  referrerId      String?
+  referrer        User?       @relation("Referrals", fields: [referrerId], references: [id])
+  referrals       User[]      @relation("Referrals")
+
+  // Status e estatísticas
+  status          UserStatus  @default(PENDING)
+  currentLevel    Int         @default(1)
+  totalDeposited  Decimal     @default(0) @db.Decimal(18, 2)
+  totalEarned     Decimal     @default(0) @db.Decimal(18, 2)
+  totalBonus      Decimal     @default(0) @db.Decimal(18, 2)
+  totalWithdrawn  Decimal     @default(0) @db.Decimal(18, 2)
+
+  // Timestamps
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  activatedAt     DateTime?
+
+  // Relacionamentos
+  queueEntries    QueueEntry[]
+  cycleHistory    CycleHistory[]
+  bonusReceived   BonusHistory[]    @relation("BonusReceiver")
+  bonusGenerated  BonusHistory[]    @relation("BonusGenerator")
+  transactions    Transaction[]
+
+  @@index([referrerId])
+  @@index([walletAddress])
+  @@index([referralCode])
+  @@index([status])
+}
+
+model Level {
+  id            Int       @id @default(autoincrement())
+  levelNumber   Int       @unique
+  entryValue    Decimal   @db.Decimal(18, 2)
+  rewardValue   Decimal   @db.Decimal(18, 2)
+  bonusValue    Decimal   @db.Decimal(18, 2)
+  cashBalance   Decimal   @default(0) @db.Decimal(18, 2)
+  totalCycles   Int       @default(0)
+  totalUsers    Int       @default(0)
+
+  // Relacionamentos
+  queueEntries  QueueEntry[]
+  cycleHistory  CycleHistory[]
+  bonusHistory  BonusHistory[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model QueueEntry {
+  id          String      @id @default(cuid())
+
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+
+  levelId     Int
+  level       Level       @relation(fields: [levelId], references: [id])
+
+  position    Int         @default(0)
+  score       Decimal     @default(0) @db.Decimal(18, 4)
+  reentries   Int         @default(0)
+  status      QueueStatus @default(WAITING)
+
+  enteredAt   DateTime    @default(now())
+  processedAt DateTime?
+
+  @@index([userId])
+  @@index([levelId])
+  @@index([status])
+  @@index([score])
+}
+
+model CycleHistory {
+  id          String        @id @default(cuid())
+
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+
+  levelId     Int
+  level       Level         @relation(fields: [levelId], references: [id])
+
+  position    CyclePosition
+  amount      Decimal       @db.Decimal(18, 2)
+  txHash      String?
+  status      TransactionStatus @default(PENDING)
+
+  // IDs dos participantes do ciclo
+  cycleGroupId String?      // Agrupa os 7 participantes do mesmo ciclo
+
+  createdAt   DateTime      @default(now())
+  confirmedAt DateTime?
+
+  @@index([userId])
+  @@index([levelId])
+  @@index([cycleGroupId])
+}
+
+model BonusHistory {
+  id            String    @id @default(cuid())
+
+  // Quem recebe o bônus (indicador)
+  referrerId    String
+  referrer      User      @relation("BonusReceiver", fields: [referrerId], references: [id])
+
+  // Quem gerou o bônus (indicado que ciclou)
+  referredId    String
+  referred      User      @relation("BonusGenerator", fields: [referredId], references: [id])
+
+  levelId       Int
+  level         Level     @relation(fields: [levelId], references: [id])
+
+  amount        Decimal   @db.Decimal(18, 2)
+  txHash        String?
+  status        TransactionStatus @default(PENDING)
+
+  createdAt     DateTime  @default(now())
+  confirmedAt   DateTime?
+
+  @@index([referrerId])
+  @@index([referredId])
+  @@index([levelId])
+}
+
+model Transaction {
+  id            String    @id @default(cuid())
+
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+
+  type          TransactionType
+  amount        Decimal   @db.Decimal(18, 2)
+  txHash        String?   @unique
+  fromAddress   String?
+  toAddress     String?
+  status        TransactionStatus @default(PENDING)
+
+  // Metadados
+  description   String?
+  metadata      Json?
+
+  createdAt     DateTime  @default(now())
+  confirmedAt   DateTime?
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([txHash])
+}
+
+model SystemFunds {
+  id            Int       @id @default(1)
+  reserve       Decimal   @default(0) @db.Decimal(18, 2)  // 10% - Anti-travamento
+  operational   Decimal   @default(0) @db.Decimal(18, 2)  // 10% - Custos operacionais
+  profit        Decimal   @default(0) @db.Decimal(18, 2)  // 40% - Lucro do sistema
+
+  totalIn       Decimal   @default(0) @db.Decimal(18, 2)
+  totalOut      Decimal   @default(0) @db.Decimal(18, 2)
+
+  updatedAt     DateTime  @updatedAt
+}
+
+model SystemConfig {
+  id            Int       @id @default(1)
+
+  // Configurações de processamento
+  minQueueSize  Int       @default(7)
+  maxCyclesPerRun Int     @default(10)
+
+  // Configurações de distribuição (Posição 5)
+  reservePercent    Decimal @default(10) @db.Decimal(5, 2)
+  operationalPercent Decimal @default(10) @db.Decimal(5, 2)
+  bonusPercent      Decimal @default(40) @db.Decimal(5, 2)
+  profitPercent     Decimal @default(40) @db.Decimal(5, 2)
+
+  // Status
+  isMaintenanceMode Boolean @default(false)
+  isProcessingEnabled Boolean @default(true)
+
+  updatedAt     DateTime  @updatedAt
+}
