@@ -1,5 +1,6 @@
 // 7iATLAS - Schema do Banco de Dados
 // Sistema de Redistribuição Progressiva
+// Versão 1.4 - Com múltiplas cotas, transferências e notificações
 
 generator client {
   provider = "prisma-client-js"
@@ -25,6 +26,9 @@ enum TransactionType {
   CYCLE_REWARD
   BONUS_REFERRAL
   WITHDRAWAL
+  INTERNAL_TRANSFER_IN
+  INTERNAL_TRANSFER_OUT
+  QUOTA_PURCHASE
 }
 
 enum TransactionStatus {
@@ -47,6 +51,27 @@ enum CyclePosition {
   ADVANCE_2   // Posição 4 - Avança para próximo nível
   COMMUNITY   // Posição 5 - Distribuição comunitária
   REENTRY     // Posição 6 - Reentrada no mesmo nível
+}
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+}
+
+enum NotificationEvent {
+  QUEUE_ADVANCE
+  CYCLE_COMPLETED
+  BONUS_RECEIVED
+  TRANSFER_RECEIVED
+  TRANSFER_SENT
+  SYSTEM_ALERT
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  CLICKED
 }
 
 // ==========================================
@@ -73,6 +98,23 @@ model User {
   totalEarned     Decimal     @default(0) @db.Decimal(18, 2)
   totalBonus      Decimal     @default(0) @db.Decimal(18, 2)
   totalWithdrawn  Decimal     @default(0) @db.Decimal(18, 2)
+  balance         Decimal     @default(0) @db.Decimal(18, 2)  // Saldo disponível para transferências
+
+  // PIN de segurança para transferências
+  pinHash           String?
+  pinAttempts       Int         @default(0)
+  pinBlockedUntil   DateTime?
+  pinCreatedAt      DateTime?
+
+  // Preferências de notificação
+  notifyEmail           Boolean   @default(true)
+  notifyPush            Boolean   @default(false)
+  notifyOnQueueAdvance  Boolean   @default(true)
+  notifyOnCycle         Boolean   @default(true)
+  notifyOnBonus         Boolean   @default(true)
+  notifyOnTransfer      Boolean   @default(true)
+  notifyFrequency       String    @default("realtime")  // realtime, daily, weekly
+  showNameInQueue       Boolean   @default(true)  // Mostrar nome na fila pública
 
   // Timestamps
   createdAt       DateTime    @default(now())
@@ -80,11 +122,15 @@ model User {
   activatedAt     DateTime?
 
   // Relacionamentos
-  queueEntries    QueueEntry[]
-  cycleHistory    CycleHistory[]
-  bonusReceived   BonusHistory[]    @relation("BonusReceiver")
-  bonusGenerated  BonusHistory[]    @relation("BonusGenerator")
-  transactions    Transaction[]
+  queueEntries        QueueEntry[]
+  cycleHistory        CycleHistory[]
+  bonusReceived       BonusHistory[]        @relation("BonusReceiver")
+  bonusGenerated      BonusHistory[]        @relation("BonusGenerator")
+  transactions        Transaction[]
+  transfersSent       InternalTransfer[]    @relation("TransfersSent")
+  transfersReceived   InternalTransfer[]    @relation("TransfersReceived")
+  pushSubscriptions   PushSubscription[]
+  notifications       NotificationLog[]
 
   @@index([referrerId])
   @@index([walletAddress])
@@ -106,6 +152,7 @@ model Level {
   queueEntries  QueueEntry[]
   cycleHistory  CycleHistory[]
   bonusHistory  BonusHistory[]
+  stats         LevelStats?
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -125,6 +172,9 @@ model QueueEntry {
   reentries   Int         @default(0)
   status      QueueStatus @default(WAITING)
 
+  // Identificador da cota (para múltiplas cotas)
+  quotaNumber Int         @default(1)  // 1, 2, 3... para o mesmo usuário/nível
+
   enteredAt   DateTime    @default(now())
   processedAt DateTime?
 
@@ -132,6 +182,7 @@ model QueueEntry {
   @@index([levelId])
   @@index([status])
   @@index([score])
+  @@index([userId, levelId, status])  // Índice para buscar cotas do usuário por nível
 }
 
 model CycleHistory {
@@ -236,9 +287,111 @@ model SystemConfig {
   bonusPercent      Decimal @default(40) @db.Decimal(5, 2)
   profitPercent     Decimal @default(40) @db.Decimal(5, 2)
 
+  // Limites de transferência
+  transferLimitNoKyc    Decimal @default(100) @db.Decimal(18, 2)   // Limite sem KYC
+  transferLimitKyc      Decimal @default(1000) @db.Decimal(18, 2)  // Limite com KYC
+  transferMinAmount     Decimal @default(10) @db.Decimal(18, 2)    // Mínimo por transferência
+  transferMaxPerDay     Int     @default(3)                        // Máx transações/dia sem KYC
+
   // Status
   isMaintenanceMode Boolean @default(false)
   isProcessingEnabled Boolean @default(true)
 
   updatedAt     DateTime  @updatedAt
+}
+
+// ==========================================
+// NOVOS MODELOS - Versão 1.4
+// ==========================================
+
+// Transferências internas entre usuários
+model InternalTransfer {
+  id            String    @id @default(cuid())
+
+  fromUserId    String
+  fromUser      User      @relation("TransfersSent", fields: [fromUserId], references: [id])
+
+  toUserId      String
+  toUser        User      @relation("TransfersReceived", fields: [toUserId], references: [id])
+
+  amount        Decimal   @db.Decimal(18, 2)
+  status        String    @default("COMPLETED")  // COMPLETED, REVERSED
+  description   String?
+
+  createdAt     DateTime  @default(now())
+
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([createdAt])
+}
+
+// Estatísticas por nível para visualização da matriz
+model LevelStats {
+  id              Int       @id @default(autoincrement())
+
+  levelId         Int       @unique
+  level           Level     @relation(fields: [levelId], references: [id])
+
+  // Estatísticas de ciclos
+  totalCycles     Int       @default(0)
+  cyclesToday     Int       @default(0)
+  avgCyclesPerDay Decimal   @default(0) @db.Decimal(10, 2)
+
+  // Tempo de espera (em minutos)
+  avgWaitTime     Int       @default(0)
+  minWaitTime     Int?
+  maxWaitTime     Int?
+
+  // Datas importantes
+  firstCycleAt    DateTime?  // Matriz mais antiga
+  lastCycleAt     DateTime?  // Último ciclo
+
+  updatedAt       DateTime   @updatedAt
+
+  @@index([levelId])
+}
+
+// Subscrições de push notification
+model PushSubscription {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  endpoint    String    // URL do push service
+  p256dh      String    // Chave pública VAPID
+  auth        String    // Token de autenticação
+  device      String?   // "Chrome Windows", "Safari iOS", etc.
+
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+}
+
+// Log de notificações enviadas
+model NotificationLog {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  channel     NotificationChannel
+  event       NotificationEvent
+  title       String
+  body        String
+  data        Json?     // Dados extras (levelId, amount, etc.)
+
+  status      NotificationStatus  @default(PENDING)
+  sentAt      DateTime?
+  clickedAt   DateTime?
+  errorMsg    String?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([event])
+  @@index([status])
+  @@index([createdAt])
 }

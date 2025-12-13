@@ -1,5 +1,6 @@
 // 7iATLAS - Matrix Service
 // Sistema de processamento da matriz 6x1
+// Versão 1.4 - Suporte a múltiplas cotas e compra em níveis superiores
 
 import prisma from '@/lib/prisma'
 import { CyclePosition } from '@/types'
@@ -19,6 +20,22 @@ const POSITIONS: CyclePosition[] = [
   'COMMUNITY',  // 5 - Comunidade
   'REENTRY',    // 6 - Reentrada
 ]
+
+// ==========================================
+// TIPOS
+// ==========================================
+
+interface QuotaPurchaseResult {
+  success: boolean
+  quotaId?: string
+  quotaNumber?: number
+  error?: string
+}
+
+interface CanPurchaseResult {
+  canPurchase: boolean
+  reason?: string
+}
 
 // ==========================================
 // FUNÇÕES DE CÁLCULO
@@ -63,9 +80,13 @@ export function calculateScore(
 // ==========================================
 
 /**
- * Adiciona usuário à fila de um nível
+ * Adiciona usuário à fila de um nível (suporta múltiplas cotas)
+ * @param userId ID do usuário
+ * @param levelNumber Número do nível
+ * @param isNewQuota Se true, cria nova cota; se false, incrementa reentradas da primeira cota
+ * @returns A entrada na fila criada ou atualizada
  */
-export async function addToQueue(userId: string, levelNumber: number) {
+export async function addToQueue(userId: string, levelNumber: number, isNewQuota: boolean = false) {
   const level = await prisma.level.findUnique({
     where: { levelNumber },
   })
@@ -74,31 +95,43 @@ export async function addToQueue(userId: string, levelNumber: number) {
     throw new Error(`Nível ${levelNumber} não encontrado`)
   }
 
-  // Verifica se já está na fila deste nível
-  const existingEntry = await prisma.queueEntry.findFirst({
+  // Se não é nova cota, verifica se já está na fila e incrementa reentradas
+  if (!isNewQuota) {
+    const existingEntry = await prisma.queueEntry.findFirst({
+      where: {
+        userId,
+        levelId: level.id,
+        status: 'WAITING',
+      },
+      orderBy: { quotaNumber: 'asc' },  // Pega a primeira cota
+    })
+
+    if (existingEntry) {
+      // Incrementa reentradas da cota existente
+      await prisma.queueEntry.update({
+        where: { id: existingEntry.id },
+        data: { reentries: { increment: 1 } },
+      })
+      return existingEntry
+    }
+  }
+
+  // Conta quantas cotas o usuário já tem neste nível (todas, não só WAITING)
+  const quotaCount = await prisma.queueEntry.count({
     where: {
       userId,
       levelId: level.id,
-      status: 'WAITING',
     },
   })
 
-  if (existingEntry) {
-    // Incrementa reentradas
-    await prisma.queueEntry.update({
-      where: { id: existingEntry.id },
-      data: { reentries: { increment: 1 } },
-    })
-    return existingEntry
-  }
-
-  // Cria nova entrada na fila
+  // Cria nova entrada na fila (nova cota)
   const entry = await prisma.queueEntry.create({
     data: {
       userId,
       levelId: level.id,
       status: 'WAITING',
       score: 0,
+      quotaNumber: quotaCount + 1,
     },
   })
 
@@ -109,6 +142,193 @@ export async function addToQueue(userId: string, levelNumber: number) {
   })
 
   return entry
+}
+
+/**
+ * Conta cotas ativas de um usuário em um nível
+ */
+export async function countUserQuotas(userId: string, levelNumber: number): Promise<number> {
+  const level = await prisma.level.findUnique({
+    where: { levelNumber },
+  })
+
+  if (!level) return 0
+
+  return prisma.queueEntry.count({
+    where: {
+      userId,
+      levelId: level.id,
+      status: 'WAITING',
+    },
+  })
+}
+
+/**
+ * Verifica se usuário pode comprar cota em um nível
+ */
+export async function canPurchaseQuota(userId: string, levelNumber: number): Promise<CanPurchaseResult> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  })
+
+  if (!user) {
+    return { canPurchase: false, reason: 'Usuário não encontrado' }
+  }
+
+  if (user.status !== 'ACTIVE') {
+    return { canPurchase: false, reason: 'Usuário não está ativo' }
+  }
+
+  // Nível 1 sempre permitido para usuários ativos
+  if (levelNumber === 1) {
+    return { canPurchase: true }
+  }
+
+  // Para níveis > 1, verificar se tem cota no nível anterior
+  const previousLevelQuotas = await countUserQuotas(userId, levelNumber - 1)
+
+  if (previousLevelQuotas === 0) {
+    // Verifica também se já teve cota no nível anterior (já pode ter ciclado)
+    const level = await prisma.level.findUnique({
+      where: { levelNumber: levelNumber - 1 },
+    })
+
+    if (level) {
+      const hadQuota = await prisma.queueEntry.count({
+        where: {
+          userId,
+          levelId: level.id,
+        },
+      })
+
+      if (hadQuota === 0) {
+        return {
+          canPurchase: false,
+          reason: `Precisa ter pelo menos 1 cota no Nível ${levelNumber - 1} primeiro`,
+        }
+      }
+    }
+  }
+
+  return { canPurchase: true }
+}
+
+/**
+ * Compra uma nova cota em um nível específico
+ */
+export async function purchaseQuota(
+  userId: string,
+  levelNumber: number,
+  txHash?: string
+): Promise<QuotaPurchaseResult> {
+  // Verifica se pode comprar
+  const canPurchase = await canPurchaseQuota(userId, levelNumber)
+  if (!canPurchase.canPurchase) {
+    return { success: false, error: canPurchase.reason }
+  }
+
+  const entryValue = calculateLevelValue(levelNumber)
+
+  // Verifica saldo do usuário (se pagando com saldo interno)
+  if (!txHash) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    })
+
+    if (!user || user.balance.toNumber() < entryValue) {
+      return { success: false, error: 'Saldo insuficiente' }
+    }
+
+    // Debita do saldo
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        balance: { decrement: entryValue },
+        totalDeposited: { increment: entryValue },
+      },
+    })
+  } else {
+    // Pagamento via blockchain - atualiza totalDeposited
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        totalDeposited: { increment: entryValue },
+      },
+    })
+  }
+
+  // Cria nova cota na fila
+  const entry = await addToQueue(userId, levelNumber, true)
+
+  // Adiciona ao caixa do nível
+  await prisma.level.update({
+    where: { levelNumber },
+    data: { cashBalance: { increment: entryValue } },
+  })
+
+  // Registra transação
+  await prisma.transaction.create({
+    data: {
+      userId,
+      type: 'QUOTA_PURCHASE',
+      amount: entryValue,
+      txHash,
+      status: 'CONFIRMED',
+      confirmedAt: new Date(),
+      description: `Compra de cota - Nível ${levelNumber}`,
+      metadata: {
+        levelNumber,
+        quotaNumber: entry.quotaNumber,
+      },
+    },
+  })
+
+  // Atualiza totais do sistema
+  await prisma.systemFunds.update({
+    where: { id: 1 },
+    data: { totalIn: { increment: entryValue } },
+  })
+
+  return {
+    success: true,
+    quotaId: entry.id,
+    quotaNumber: entry.quotaNumber,
+  }
+}
+
+/**
+ * Lista todas as cotas de um usuário em um nível
+ */
+export async function getUserQuotas(userId: string, levelNumber: number) {
+  const level = await prisma.level.findUnique({
+    where: { levelNumber },
+  })
+
+  if (!level) return []
+
+  return prisma.queueEntry.findMany({
+    where: {
+      userId,
+      levelId: level.id,
+    },
+    orderBy: { quotaNumber: 'asc' },
+  })
+}
+
+/**
+ * Lista todas as cotas de um usuário em todos os níveis
+ */
+export async function getAllUserQuotas(userId: string) {
+  return prisma.queueEntry.findMany({
+    where: { userId },
+    include: {
+      level: true,
+    },
+    orderBy: [
+      { levelId: 'asc' },
+      { quotaNumber: 'asc' },
+    ],
+  })
 }
 
 /**
@@ -521,13 +741,22 @@ export async function activateUser(userId: string, depositTxHash: string) {
 // ==========================================
 
 export const matrixService = {
+  // Cálculos
   calculateLevelValue,
   calculateReward,
   calculateBonus,
   calculateScore,
+  // Fila
   addToQueue,
   updateQueueScores,
   getNextMatrixParticipants,
+  // Cotas
+  countUserQuotas,
+  canPurchaseQuota,
+  purchaseQuota,
+  getUserQuotas,
+  getAllUserQuotas,
+  // Ciclos
   canProcessCycle,
   processCycle,
   activateUser,

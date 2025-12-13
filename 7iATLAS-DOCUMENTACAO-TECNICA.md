@@ -1,8 +1,9 @@
 # 7iATLAS - DOCUMENTAÇÃO TÉCNICA COMPLETA
 ## Sistema de Redistribuição Progressiva
 
-> **Versão:** 1.0  
-> **Data:** Dezembro 2025  
+> **Versão:** 1.5
+> **Data:** Dezembro 2025
+> **Atualização:** Implementação completa de todas as funcionalidades (Backend + Frontend)
 > **Confidencial** - Documento para desenvolvimento interno
 
 ---
@@ -16,9 +17,17 @@
 5. [Integração Blockchain](#5-integração-blockchain)
 6. [Frontend](#6-frontend)
 7. [Regras de Negócio](#7-regras-de-negócio)
+   - 7.4 [Funcionalidades Avançadas](#74-funcionalidades-avançadas)
+     - 7.4.1 [Múltiplas Cotas por Usuário](#741-múltiplas-cotas-por-usuário)
+     - 7.4.2 [Compra em Níveis Superiores](#742-compra-de-cotas-em-níveis-superiores)
+     - 7.4.3 [Combinação das Funcionalidades](#743-combinação-das-funcionalidades)
+     - 7.4.4 [Transferência Interna de Saldo](#744-transferência-interna-de-saldo)
+     - 7.4.5 [Sistema de Notificações](#745-sistema-de-notificações)
+     - 7.4.6 [Visualização de Matriz e Posição na Fila](#746-visualização-de-matriz-e-posição-na-fila)
 8. [Segurança](#8-segurança)
 9. [Deploy](#9-deploy)
 10. [Testes](#10-testes)
+11. [Implementação Completa](#11-implementação-completa)
 
 ---
 
@@ -546,6 +555,1173 @@ CICLO:
 
 ---
 
+# 7.4 FUNCIONALIDADES AVANÇADAS
+
+## 7.4.1 Múltiplas Cotas por Usuário
+
+O sistema permite que um usuário compre **múltiplas cotas** no mesmo nível, cada cota sendo uma entrada independente na fila.
+
+### Conceito
+
+```
+USUÁRIO ÚNICO → MÚLTIPLAS POSIÇÕES NA FILA
+
+Exemplo:
+├── João compra 1ª cota no Nível 1 → JOAO-L1-C1 (entra na fila)
+├── João compra 2ª cota no Nível 1 → JOAO-L1-C2 (entra na fila)
+├── João compra 3ª cota no Nível 1 → JOAO-L1-C3 (entra na fila)
+└── João agora tem 3 posições independentes competindo
+
+Cada cota:
+• Tem seu próprio score
+• Avança independentemente
+• Pode ciclar em momentos diferentes
+```
+
+### Regras
+
+```
+✅ SEM LIMITE de cotas por usuário
+✅ Cada cota é uma QueueEntry independente
+✅ Cotas NÃO compartilham score
+✅ Ao ciclar, cota avança para N+1 E reentra em N
+✅ Bônus de indicação: pago para cada cota que cicla
+
+⚠️ OBSERVAÇÃO IMPORTANTE:
+   Sem limite de cotas, usuários com maior capital podem
+   acumular muitas posições, potencialmente dominando filas.
+
+   RECOMENDAÇÕES DE MONITORAMENTO:
+   ├── Alertar quando usuário tiver >10 cotas no mesmo nível
+   ├── Dashboard admin para visualizar distribuição de cotas
+   ├── Relatórios de concentração por usuário
+   └── Possibilidade de implementar limite futuro se necessário
+```
+
+### Modelo de Dados
+
+```prisma
+// Cada cota é uma QueueEntry separada
+model QueueEntry {
+  id          String      @id @default(cuid())
+  userId      String      // Mesmo usuário pode ter múltiplas entries
+  levelId     Int
+  position    Int         @default(0)
+  score       Decimal     @default(0)
+  reentries   Int         @default(0)
+  status      String      @default("WAITING")
+  enteredAt   DateTime    @default(now())
+
+  // Identificador da cota (opcional, para tracking)
+  quotaNumber Int?        // 1, 2, 3... para o mesmo usuário/nível
+}
+```
+
+### Fluxo de Compra de Cota Adicional
+
+```
+1. VALIDAÇÃO
+   ├── Usuário está ACTIVE
+   ├── Tem saldo suficiente ($10 × número de cotas)
+   └── Depósito verificado na blockchain
+
+2. PROCESSAMENTO
+   ├── Criar nova QueueEntry
+   ├── userId = mesmo usuário
+   ├── levelId = nível desejado
+   └── score = 0 (inicia do zero)
+
+3. RESULTADO
+   ├── Nova posição na fila
+   ├── Independente das outras cotas
+   └── Compete normalmente por score
+```
+
+## 7.4.2 Compra de Cotas em Níveis Superiores
+
+Usuários podem comprar cotas diretamente em níveis superiores, **desde que já possuam pelo menos uma cota no nível anterior**.
+
+### Conceito
+
+```
+PROGRESSÃO OBRIGATÓRIA:
+
+Nível 1 ($10)  → Qualquer usuário pode comprar (entrada padrão)
+Nível 2 ($20)  → Só se já tiver cota no Nível 1
+Nível 3 ($40)  → Só se já tiver cota no Nível 2
+...
+Nível 10 ($5120) → Só se já tiver cota no Nível 9
+
+EXEMPLO VÁLIDO:
+├── Maria compra Nível 1 ✅
+├── Maria compra Nível 2 ✅ (tem N1)
+├── Maria compra mais 5 cotas no Nível 2 ✅
+└── Maria compra Nível 3 ✅ (tem N2)
+
+EXEMPLO INVÁLIDO:
+├── Pedro compra Nível 1 ✅
+├── Pedro tenta comprar Nível 3 ❌ (não tem N2)
+└── Sistema bloqueia a transação
+```
+
+### Regras
+
+```
+✅ Deve ter pelo menos 1 cota no nível N-1 para comprar nível N
+✅ Não precisa ter CICLADO no nível anterior, apenas TER a cota
+✅ Pode comprar múltiplas cotas no mesmo nível superior
+✅ Valores dobram a cada nível (progressão exponencial)
+✅ Ao ciclar no nível N, avança para N+1 E reentra em N
+
+VALIDAÇÃO:
+├── Verificar cotasPorNivel[N-1] > 0
+├── Se N > 1 e não tem cota em N-1: BLOQUEAR
+└── Se N = 1: sempre permitido (entrada)
+```
+
+### Função de Validação
+
+```typescript
+function podeComprarCota(userId: string, level: number): { pode: boolean; motivo: string } {
+  const user = getUser(userId)
+
+  // Verificar se usuário está ativo
+  if (user.status !== 'ACTIVE') {
+    return { pode: false, motivo: 'Usuário não está ativo' }
+  }
+
+  // Nível 1 sempre permitido
+  if (level === 1) {
+    return { pode: true, motivo: 'OK' }
+  }
+
+  // Para níveis > 1, verificar se tem cota no nível anterior
+  const cotasNivelAnterior = contarCotasNivel(userId, level - 1)
+
+  if (cotasNivelAnterior === 0) {
+    return {
+      pode: false,
+      motivo: `Precisa ter pelo menos 1 cota no Nível ${level - 1} primeiro`
+    }
+  }
+
+  return { pode: true, motivo: 'OK' }
+}
+```
+
+### Tabela de Valores por Nível
+
+| Nível | Valor Entrada | Requisito |
+|-------|---------------|-----------|
+| 1 | $10 | Nenhum (entrada) |
+| 2 | $20 | Ter cota no N1 |
+| 3 | $40 | Ter cota no N2 |
+| 4 | $80 | Ter cota no N3 |
+| 5 | $160 | Ter cota no N4 |
+| 6 | $320 | Ter cota no N5 |
+| 7 | $640 | Ter cota no N6 |
+| 8 | $1,280 | Ter cota no N7 |
+| 9 | $2,560 | Ter cota no N8 |
+| 10 | $5,120 | Ter cota no N9 |
+
+## 7.4.3 Combinação das Funcionalidades
+
+As duas funcionalidades trabalham juntas de forma sinérgica:
+
+```
+EXEMPLO COMPLETO:
+
+1. Ana ativa conta com $10 (1 cota N1)
+2. Ana compra +9 cotas no N1 ($90)
+   └── Ana tem 10 cotas no N1
+
+3. Ana compra 5 cotas no N2 ($100)
+   └── Permitido porque tem cotas no N1
+
+4. Primeira cota de Ana cicla no N1:
+   ├── Ganha $20
+   ├── Avança para N2 (agora 6 cotas em N2)
+   └── Reentra no N1 (continua com 10 cotas)
+
+5. Ana pode comprar N3 ($40/cota)
+   └── Permitido porque já tem cotas no N2
+```
+
+### Benefícios do Sistema
+
+```
+PARA O USUÁRIO:
+├── Acelera progressão comprando mais cotas
+├── Diversifica posições na fila
+├── Pode pular espera comprando níveis superiores
+└── Múltiplas fontes de ganho simultâneas
+
+PARA O SISTEMA:
+├── Maior entrada de capital
+├── Filas mais ativas
+├── Ciclos mais frequentes
+└── Sistema mais dinâmico
+```
+
+### Resultados da Simulação
+
+Teste realizado com 1.000 usuários simulados:
+
+```
+CENÁRIO 1 - Sistema Original (1 cota, só N1):
+├── Ciclos: 9.670
+├── Total Pago: $1.141.000
+└── Média/usuário: $1.141
+
+CENÁRIO 2 - Com Múltiplas Cotas + Níveis Superiores:
+├── Ciclos: 48.345
+├── Total Pago: $5.283.500
+├── Média/usuário: $5.283
+└── Aumento: 4.63× mais pagamentos
+
+CONCLUSÃO: Sistema matematicamente equilibrado e sustentável
+           com as novas funcionalidades.
+```
+
+## 7.4.4 Transferência Interna de Saldo
+
+Usuários podem transferir saldo interno para outros usuários, com confirmação via **PIN de segurança**.
+
+### Conceito
+
+```
+TRANSFERÊNCIA INTERNA:
+├── Usuário A tem saldo: $500 (ganhos confirmados)
+├── Usuário A transfere $100 para Usuário B
+├── Confirma com PIN de 4-6 dígitos
+└── Usuário B recebe $100 instantaneamente
+
+VANTAGENS:
+├── Sem taxas de blockchain (gas)
+├── Transferência instantânea
+├── Ajudar indicados a começar
+└── Movimentação interna eficiente
+```
+
+### Sistema de PIN
+
+```
+SEGURANÇA EM CAMADAS:
+
+SENHA (login/conta):
+├── Acesso à conta
+├── Alterações de perfil
+├── Criar/alterar PIN
+└── Mais forte (8+ caracteres)
+
+PIN (transações):
+├── Transferências internas
+├── Saques (opcional)
+├── 4-6 dígitos numéricos
+└── Mais simples, mais rápido
+```
+
+### Modelo de Dados
+
+```prisma
+model User {
+  // ... campos existentes
+
+  // PIN de segurança
+  pinHash           String?       // bcrypt do PIN
+  pinAttempts       Int           @default(0)
+  pinBlockedUntil   DateTime?
+  pinCreatedAt      DateTime?
+
+  // Relacionamentos de transferência
+  transfersSent     InternalTransfer[]  @relation("TransfersSent")
+  transfersReceived InternalTransfer[]  @relation("TransfersReceived")
+}
+
+model InternalTransfer {
+  id            String    @id @default(cuid())
+
+  fromUserId    String
+  fromUser      User      @relation("TransfersSent", fields: [fromUserId], references: [id])
+
+  toUserId      String
+  toUser        User      @relation("TransfersReceived", fields: [toUserId], references: [id])
+
+  amount        Decimal   @db.Decimal(18, 2)
+  status        String    @default("COMPLETED")  // COMPLETED apenas
+  description   String?
+
+  createdAt     DateTime  @default(now())
+
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+```
+
+### Fluxos de PIN
+
+```
+1. CRIAR PIN (primeira vez)
+   ├── Dashboard > Configurações > Criar PIN
+   ├── Digita senha da conta (confirmar identidade)
+   ├── Define PIN 4-6 dígitos
+   ├── Confirma PIN (digitar novamente)
+   └── PIN ativo!
+
+2. ALTERAR PIN
+   ├── Dashboard > Configurações > Alterar PIN
+   ├── Digita senha da conta
+   ├── Define novo PIN
+   ├── Confirma novo PIN
+   └── Atualizado!
+
+3. ESQUECEU O PIN
+   ├── Dashboard > Configurações > Resetar PIN
+   ├── Digita senha da conta
+   ├── Define novo PIN
+   └── Pronto! (self-service, sem suporte)
+```
+
+### Fluxo de Transferência
+
+```
+1. INICIAR TRANSFERÊNCIA
+   ├── Dashboard > Transferir
+   ├── Buscar destinatário (código de indicação ou wallet)
+   ├── Define valor a transferir
+   └── Clica em "Transferir"
+
+2. VALIDAÇÕES
+   ├── Usuário tem PIN configurado?
+   ├── PIN não está bloqueado?
+   ├── Saldo suficiente (só CONFIRMED)?
+   ├── Destinatário existe e está ACTIVE?
+   ├── Dentro dos limites diários?
+   └── Valor mínimo atendido?
+
+3. CONFIRMAR COM PIN
+   ├── Modal solicita PIN
+   ├── Usuário digita 4-6 dígitos
+   ├── Sistema valida PIN (bcrypt)
+   └── PIN correto → executa transferência
+
+4. RESULTADO
+   ├── Debita saldo do remetente
+   ├── Credita saldo do destinatário
+   ├── Registra InternalTransfer
+   └── Exibe confirmação
+```
+
+### Proteção contra Tentativas
+
+```
+BLOQUEIO PROGRESSIVO:
+
+Tentativas erradas → Consequência
+├── 3 erros → Bloqueio 15 minutos
+├── 6 erros → Bloqueio 1 hora
+├── 9 erros → Bloqueio 24 horas
+└── Notificação por email a cada bloqueio
+
+DESBLOQUEIO:
+├── Aguardar tempo expirar
+├── OU resetar PIN via senha (imediato)
+└── Contador zera após reset
+```
+
+### Limites de Transferência
+
+```
+LIMITES DIÁRIOS (24h):
+
+┌─────────────────────────────────────────┐
+│ Sem verificação KYC:                    │
+│ ├── Máximo: $100/dia                    │
+│ ├── Transações: 3/dia                   │
+│ └── Mínimo por transação: $10           │
+├─────────────────────────────────────────┤
+│ Com KYC verificado:                     │
+│ ├── Máximo: $1.000/dia                  │
+│ ├── Transações: 10/dia                  │
+│ └── Mínimo por transação: $10           │
+└─────────────────────────────────────────┘
+
+TAXAS: 0% (sem taxas internas)
+```
+
+### Regras Importantes
+
+```
+✅ PERMITIDO:
+├── Transferir para qualquer usuário ACTIVE
+├── Transferir apenas saldo CONFIRMED (não pending)
+├── Múltiplas transferências até o limite diário
+└── Usar saldo recebido imediatamente
+
+❌ NÃO PERMITIDO:
+├── Transferir para si mesmo
+├── Transferir saldo pending/não confirmado
+├── Exceder limites diários
+├── Transferir sem PIN configurado
+
+⚠️ IRREVERSÍVEL:
+├── Transferências NÃO podem ser revertidas
+├── Sistema NÃO resolve disputas entre usuários
+├── Usuário assume total responsabilidade
+└── Termos de uso devem ser aceitos
+```
+
+### API Endpoints
+
+```
+POST /api/users/pin/create
+{
+  "password": "senha_da_conta",
+  "pin": "1234",
+  "confirmPin": "1234"
+}
+
+POST /api/users/pin/change
+{
+  "password": "senha_da_conta",
+  "newPin": "5678",
+  "confirmPin": "5678"
+}
+
+POST /api/transfers/internal
+{
+  "toUserCode": "ABC123",      // código de indicação ou
+  "toWallet": "0x...",         // wallet address
+  "amount": 100,
+  "pin": "1234",
+  "description": "Ajuda para cotas"  // opcional
+}
+
+GET /api/transfers/internal/history
+→ Lista de transferências enviadas/recebidas
+```
+
+### Observações de Segurança
+
+```
+⚠️ RISCOS MITIGADOS COM PIN:
+├── Acesso não autorizado à conta logada
+├── Transferências acidentais
+└── Uso por terceiros com acesso ao dispositivo
+
+⚠️ RISCOS QUE AINDA EXISTEM:
+├── Engenharia social ("me passa seu PIN")
+├── Golpes entre usuários
+├── Contas falsas (criar conta → transferir)
+└── Phishing
+
+RECOMENDAÇÕES:
+├── Nunca compartilhar PIN
+├── Verificar destinatário antes de transferir
+├── Usar PIN diferente da senha
+└── Monitorar histórico de transferências
+```
+
+## 7.4.5 Sistema de Notificações
+
+Sistema de notificações multicanal para manter usuários informados sobre eventos importantes da plataforma.
+
+### Canais de Notificação
+
+```
+1. EMAIL
+   ├── Funciona em qualquer dispositivo
+   ├── Usuário não precisa estar online
+   ├── Histórico permanente
+   └── Serviços: SendGrid, Resend, AWS SES
+
+2. PUSH BROWSER (Web Push API)
+   ├── Notificação instantânea no navegador
+   ├── Funciona mesmo com aba fechada
+   ├── Gratuito (API nativa)
+   └── Chrome, Firefox, Edge, Safari (16.4+)
+
+3. PUSH MOBILE (PWA)
+   ├── Android: suporte completo
+   ├── iOS: suporte a partir do 16.4
+   ├── Sem necessidade de app nativo
+   └── Service Worker required
+```
+
+### Eventos Notificáveis
+
+```
+PROGRESSÃO NA FILA:
+├── "Você avançou para posição #3 no Nível 1"
+├── "Faltam 2 pessoas para completar a matriz"
+└── "Você está próximo de ciclar!"
+
+CICLO COMPLETADO:
+├── "Parabéns! Você ciclou no Nível 1"
+├── "Ganho: +$20 creditado na sua conta"
+├── "Você avançou para o Nível 2"
+└── "Sua cota reentrou automaticamente no Nível 1"
+
+BÔNUS DE INDICAÇÃO:
+├── "Seu indicado João ciclou no Nível 1!"
+├── "Bônus: +$4 creditado"
+└── "Total de bônus este mês: $120"
+
+TRANSFERÊNCIAS:
+├── "Você recebeu $100 de Maria"
+├── "Transferência de $50 enviada com sucesso"
+└── "Alerta: PIN bloqueado por tentativas excedidas"
+
+SISTEMA:
+├── "Novo nível desbloqueado: Nível 3!"
+├── "Manutenção programada em 2 horas"
+└── "Nova funcionalidade: Múltiplas cotas disponível"
+```
+
+### Modelo de Dados
+
+```prisma
+model User {
+  // ... campos existentes
+
+  // Preferências de notificação
+  notifyEmail           Boolean   @default(true)
+  notifyPush            Boolean   @default(false)
+  notifyOnQueueAdvance  Boolean   @default(true)
+  notifyOnCycle         Boolean   @default(true)
+  notifyOnBonus         Boolean   @default(true)
+  notifyOnTransfer      Boolean   @default(true)
+  notifyFrequency       String    @default("realtime")  // realtime, daily, weekly
+
+  // Relacionamentos
+  pushSubscriptions     PushSubscription[]
+  notifications         NotificationLog[]
+}
+
+model PushSubscription {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  endpoint    String    // URL do push service
+  p256dh      String    // Chave pública VAPID
+  auth        String    // Token de autenticação
+  device      String?   // "Chrome Windows", "Safari iOS", etc.
+
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+}
+
+model NotificationLog {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  channel     String    // "email", "push"
+  event       String    // "cycle", "bonus", "transfer", "queue", "system"
+  title       String
+  body        String
+  data        Json?     // Dados extras (levelId, amount, etc.)
+
+  status      String    @default("pending")  // pending, sent, failed, clicked
+  sentAt      DateTime?
+  clickedAt   DateTime?
+  errorMsg    String?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([event])
+  @@index([status])
+}
+```
+
+### Interface no Dashboard
+
+```
+CONFIGURAÇÕES > NOTIFICAÇÕES
+┌─────────────────────────────────────────────────────────┐
+│ 🔔 Configurar Notificações                              │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ CANAIS DE NOTIFICAÇÃO:                                  │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ 📧 Email                    [████████████] ATIVO    │ │
+│ │    usuario@email.com                                │ │
+│ │    Verificado ✓                                     │ │
+│ └─────────────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ 🔔 Notificações Push        [            ] INATIVO  │ │
+│ │    Clique para ativar no navegador                  │ │
+│ │    [Ativar Notificações]                            │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ QUAIS EVENTOS DESEJA RECEBER:                           │
+│ ├── [✓] Avanço na fila (quando minha posição muda)     │
+│ ├── [✓] Ciclo completado (quando eu ciclar)            │
+│ ├── [✓] Bônus de indicação (quando indicado ciclar)    │
+│ ├── [✓] Transferências (envios e recebimentos)         │
+│ └── [✓] Novidades do sistema                           │
+│                                                         │
+│ FREQUÊNCIA:                                             │
+│ ○ Tempo real (notificar cada evento)                   │
+│ ● Resumo diário (1 email por dia às 20h)               │
+│ ○ Resumo semanal (1 email por semana)                  │
+│                                                         │
+│                              [Salvar Preferências]      │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Fluxo de Ativação Push
+
+```
+1. USUÁRIO CLICA "ATIVAR NOTIFICAÇÕES"
+   ├── Frontend solicita permissão do navegador
+   ├── Notification.requestPermission()
+   └── Usuário clica "Permitir"
+
+2. GERAR SUBSCRIPTION
+   ├── Service Worker registrado
+   ├── pushManager.subscribe() com VAPID key
+   └── Retorna endpoint + keys
+
+3. SALVAR NO BACKEND
+   ├── POST /api/notifications/subscribe
+   ├── Salva PushSubscription no banco
+   └── Associa ao userId
+
+4. ENVIAR PUSH (quando evento ocorre)
+   ├── Backend usa web-push library
+   ├── Envia para endpoint do usuário
+   └── Navegador exibe notificação
+```
+
+### API Endpoints
+
+```
+GET /api/notifications/preferences
+→ Retorna preferências atuais do usuário
+
+PUT /api/notifications/preferences
+{
+  "notifyEmail": true,
+  "notifyPush": true,
+  "notifyOnQueueAdvance": true,
+  "notifyOnCycle": true,
+  "notifyOnBonus": true,
+  "notifyOnTransfer": true,
+  "notifyFrequency": "realtime"
+}
+
+POST /api/notifications/subscribe
+{
+  "endpoint": "https://fcm.googleapis.com/...",
+  "keys": {
+    "p256dh": "BNcRd...",
+    "auth": "tBHI..."
+  },
+  "device": "Chrome Windows"
+}
+
+DELETE /api/notifications/subscribe
+{
+  "endpoint": "https://fcm.googleapis.com/..."
+}
+
+GET /api/notifications/history
+→ Lista de notificações enviadas ao usuário
+
+POST /api/notifications/test
+→ Envia notificação de teste (para verificar configuração)
+```
+
+### Serviço de Email
+
+```typescript
+// Serviços recomendados (por ordem de preferência)
+RESEND:
+├── Gratuito: 100 emails/dia
+├── Developer-friendly
+├── Fácil integração
+└── Custo: $20/mês para 50k emails
+
+SENDGRID:
+├── Gratuito: 100 emails/dia
+├── Muito estabelecido
+├── Templates visuais
+└── Custo: $15/mês para 40k emails
+
+AWS SES:
+├── Mais barato em escala
+├── $0.10 por 1000 emails
+├── Requer mais configuração
+└── Melhor para alto volume
+```
+
+### Templates de Email
+
+```
+CICLO COMPLETADO:
+┌─────────────────────────────────────────────┐
+│ 🎉 Parabéns! Você ciclou no Nível 1!        │
+├─────────────────────────────────────────────┤
+│                                             │
+│ Olá, João!                                  │
+│                                             │
+│ Sua cota no Nível 1 completou o ciclo.      │
+│                                             │
+│ ✅ Ganho: +$20.00                           │
+│ ⬆️ Avanço: Nível 2                          │
+│ 🔄 Reentrada: Nível 1                       │
+│                                             │
+│ Saldo atual: $320.00                        │
+│                                             │
+│ [Ver Meu Dashboard]                         │
+│                                             │
+└─────────────────────────────────────────────┘
+
+BÔNUS RECEBIDO:
+┌─────────────────────────────────────────────┐
+│ 💰 Bônus de Indicação Recebido!             │
+├─────────────────────────────────────────────┤
+│                                             │
+│ Olá, Maria!                                 │
+│                                             │
+│ Seu indicado Pedro ciclou no Nível 2!       │
+│                                             │
+│ 💵 Bônus: +$8.00                            │
+│ 📊 Total de bônus este mês: $156.00         │
+│                                             │
+│ Continue indicando para ganhar mais!        │
+│                                             │
+│ Seu link: 7iatlas.com/ref/MARIA001          │
+│                                             │
+│ [Copiar Link] [Ver Indicados]               │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+### Custos Estimados
+
+```
+FASE INICIAL (até 1.000 usuários):
+├── Email: $0-15/mês (Resend/SendGrid free tier)
+├── Push: $0 (Web Push API gratuito)
+└── Total: ~$0-15/mês
+
+CRESCIMENTO (1.000-10.000 usuários):
+├── Email: $20-50/mês
+├── Push: $0 (ainda gratuito)
+└── Total: ~$20-50/mês
+
+ESCALA (10.000+ usuários):
+├── Email: $50-200/mês (AWS SES mais econômico)
+├── Push: $0-50/mês (se usar serviço terceiro)
+└── Total: ~$50-250/mês
+```
+
+### Boas Práticas
+
+```
+✅ FAZER:
+├── Permitir opt-out fácil (unsubscribe em 1 clique)
+├── Respeitar frequência escolhida pelo usuário
+├── Incluir link direto para ação no email
+├── Testar emails em múltiplos clientes
+└── Monitorar taxa de abertura e cliques
+
+❌ EVITAR:
+├── Enviar muitas notificações (spam)
+├── Notificar eventos irrelevantes
+├── Emails sem opção de cancelar
+├── Push sem permissão explícita
+└── Notificar de madrugada (respeitar timezone)
+
+⚠️ COMPLIANCE:
+├── LGPD: Consentimento explícito para marketing
+├── CAN-SPAM: Link de unsubscribe obrigatório
+├── GDPR: Direito de exclusão de dados
+└── Guardar logs de consentimento
+```
+
+## 7.4.6 Visualização de Matriz e Posição na Fila
+
+Sistema de visualização transparente que permite aos usuários ver sua posição real na fila, estatísticas do nível e localizar-se na lista completa.
+
+### Conceito
+
+```
+TRANSPARÊNCIA TOTAL:
+├── Usuário sabe EXATAMENTE onde está na fila
+├── Vê quantas pessoas estão na frente
+├── Estatísticas do nível (ciclos, tempo médio)
+├── Pode ver fila completa e se encontrar
+└── Aumenta CREDIBILIDADE e CONFIANÇA
+```
+
+### Funcionalidades
+
+```
+FASE 1 - POSIÇÃO E ESTATÍSTICAS:
+├── Posição real na fila
+│   └── "Você está na posição #23 de 156 pessoas"
+├── Estatísticas básicas do nível
+│   ├── Total de ciclos completados
+│   ├── Ciclos nas últimas 24h
+│   ├── Tempo médio de espera
+│   └── Matriz mais antiga (credibilidade)
+└── Botão "Ir para minha posição"
+
+FASE 2 - FILA COMPLETA:
+├── Lista paginada de toda a fila
+├── Busca por nome ou código
+├── Destaque visual do usuário logado
+└── Ordenação por score (prioridade real)
+```
+
+### Modelo de Dados
+
+```prisma
+model LevelStats {
+  id              Int       @id @default(autoincrement())
+  levelId         Int       @unique
+  level           Level     @relation(fields: [levelId], references: [id])
+
+  // Estatísticas de ciclos
+  totalCycles     Int       @default(0)
+  cyclesToday     Int       @default(0)
+  avgCyclesPerDay Decimal   @default(0) @db.Decimal(10, 2)
+
+  // Tempo de espera
+  avgWaitTime     Int       @default(0)  // em minutos
+  minWaitTime     Int?
+  maxWaitTime     Int?
+
+  // Datas importantes
+  firstCycleAt    DateTime?  // Matriz mais antiga
+  lastCycleAt     DateTime?  // Último ciclo
+
+  updatedAt       DateTime   @updatedAt
+}
+
+// Adicionar ao model Level existente:
+model Level {
+  // ... campos existentes
+
+  stats           LevelStats?
+}
+```
+
+### Interface Visual
+
+```
+DASHBOARD > MINHA POSIÇÃO
+┌─────────────────────────────────────────────────────────────────┐
+│ 📊 Sua Posição no Nível 1                                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │     🏆 VOCÊ ESTÁ NA POSIÇÃO                              │   │
+│  │                                                          │   │
+│  │              #23 de 156                                  │   │
+│  │                                                          │   │
+│  │     ████████████░░░░░░░░░░░░░░░░  15%                    │   │
+│  │                                                          │   │
+│  │     Estimativa: ~2 dias para ciclar                      │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ESTATÍSTICAS DO NÍVEL 1                                        │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
+│  │   2,450     │ │    23       │ │   ~48h      │ │   156       ││
+│  │   Ciclos    │ │   Hoje      │ │   Média     │ │   Na Fila   ││
+│  │   Totais    │ │   (24h)     │ │   Espera    │ │   Agora     ││
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘│
+│                                                                  │
+│  MATRIZ MAIS ANTIGA: há 15 dias (entrada: 27/Nov/2025)          │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+
+FILA COMPLETA DO NÍVEL 1
+┌─────────────────────────────────────────────────────────────────┐
+│  🔍 [Buscar por nome ou código...         ]  [Ir para mim]     │
+├─────────────────────────────────────────────────────────────────┤
+│  #   │ USUÁRIO        │ SCORE  │ TEMPO NA FILA  │ REENTRADAS   │
+│ ─────┼────────────────┼────────┼────────────────┼────────────── │
+│  1   │ Carlos S.      │ 245.5  │ 15 dias        │ 3            │
+│  2   │ Maria L.       │ 201.2  │ 12 dias        │ 2            │
+│  3   │ João P.        │ 198.7  │ 11 dias        │ 2            │
+│  ... │ ...            │ ...    │ ...            │ ...          │
+│ ─────┼────────────────┼────────┼────────────────┼────────────── │
+│  23  │ ⭐ VOCÊ (Ana)  │ 98.3   │ 5 dias         │ 1            │  ← DESTAQUE
+│ ─────┼────────────────┼────────┼────────────────┼────────────── │
+│  24  │ Pedro M.       │ 95.1   │ 5 dias         │ 1            │
+│  ... │ ...            │ ...    │ ...            │ ...          │
+│  156 │ Roberto K.     │ 12.0   │ 6 horas        │ 0            │
+├─────────────────────────────────────────────────────────────────┤
+│        [◀ Anterior]  Página 3 de 16  [Próxima ▶]               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### API Endpoints
+
+```
+GET /api/matrix/position/:level
+→ Retorna posição do usuário no nível
+
+Response:
+{
+  "position": 23,
+  "totalInQueue": 156,
+  "percentile": 15,
+  "estimatedWait": "2 dias",
+  "score": 98.3,
+  "enteredAt": "2025-12-07T10:30:00Z",
+  "reentries": 1
+}
+
+GET /api/matrix/stats/:level
+→ Retorna estatísticas do nível
+
+Response:
+{
+  "levelId": 1,
+  "totalCycles": 2450,
+  "cyclesToday": 23,
+  "avgCyclesPerDay": 18.5,
+  "avgWaitTime": 2880,  // minutos
+  "totalInQueue": 156,
+  "oldestEntry": {
+    "enteredAt": "2025-11-27T08:00:00Z",
+    "daysAgo": 15
+  }
+}
+
+GET /api/matrix/queue/:level
+→ Retorna fila completa paginada
+
+Query params:
+- page: número da página (default: 1)
+- limit: itens por página (default: 10, max: 50)
+- search: busca por nome ou código
+- highlight: boolean para destacar usuário logado
+
+Response:
+{
+  "items": [
+    {
+      "position": 1,
+      "userId": "clx123...",
+      "name": "Carlos S.",
+      "code": "CAR001",
+      "score": 245.5,
+      "timeInQueue": "15 dias",
+      "reentries": 3,
+      "isCurrentUser": false
+    },
+    // ...
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 156,
+    "totalPages": 16
+  },
+  "currentUserPosition": 23  // incluído se highlight=true
+}
+
+GET /api/matrix/queue/:level/find-me
+→ Retorna a página onde o usuário está
+
+Response:
+{
+  "position": 23,
+  "page": 3,
+  "limit": 10
+}
+```
+
+### Cálculos e Lógica
+
+```typescript
+// Calcular posição do usuário na fila
+async function getUserPosition(userId: string, levelId: number): Promise<number> {
+  // Buscar a entrada do usuário
+  const userEntry = await prisma.queueEntry.findFirst({
+    where: { userId, levelId, status: 'WAITING' }
+  })
+
+  if (!userEntry) return -1
+
+  // Contar quantos têm score maior (estão na frente)
+  const aheadCount = await prisma.queueEntry.count({
+    where: {
+      levelId,
+      status: 'WAITING',
+      score: { gt: userEntry.score }
+    }
+  })
+
+  return aheadCount + 1  // Posição é quantidade na frente + 1
+}
+
+// Calcular tempo estimado para ciclar
+function estimateWaitTime(
+  position: number,
+  avgCyclesPerDay: number
+): string {
+  if (avgCyclesPerDay === 0) return "Calculando..."
+
+  // Cada ciclo processa 7 pessoas
+  const cyclesNeeded = Math.ceil(position / 7)
+  const daysNeeded = cyclesNeeded / avgCyclesPerDay
+
+  if (daysNeeded < 1) {
+    const hours = Math.round(daysNeeded * 24)
+    return `~${hours} horas`
+  } else if (daysNeeded < 7) {
+    return `~${Math.round(daysNeeded)} dias`
+  } else {
+    const weeks = Math.round(daysNeeded / 7)
+    return `~${weeks} semanas`
+  }
+}
+
+// Atualizar estatísticas do nível (executar após cada ciclo)
+async function updateLevelStats(levelId: number): Promise<void> {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // Contar ciclos
+  const [totalCycles, cyclesToday] = await Promise.all([
+    prisma.cycleHistory.count({
+      where: { levelId, position: 0, status: 'COMPLETED' }
+    }),
+    prisma.cycleHistory.count({
+      where: {
+        levelId,
+        position: 0,
+        status: 'COMPLETED',
+        createdAt: { gte: today }
+      }
+    })
+  ])
+
+  // Matriz mais antiga
+  const oldestEntry = await prisma.queueEntry.findFirst({
+    where: { levelId, status: 'WAITING' },
+    orderBy: { enteredAt: 'asc' }
+  })
+
+  // Calcular média de ciclos por dia (últimos 30 dias)
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  const cyclesLast30Days = await prisma.cycleHistory.count({
+    where: {
+      levelId,
+      position: 0,
+      status: 'COMPLETED',
+      createdAt: { gte: thirtyDaysAgo }
+    }
+  })
+
+  const avgCyclesPerDay = cyclesLast30Days / 30
+
+  // Calcular tempo médio de espera (dos últimos 100 ciclos)
+  const recentCycles = await prisma.cycleHistory.findMany({
+    where: { levelId, position: 0, status: 'COMPLETED' },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+    include: { user: true }
+  })
+
+  // ... cálculo do tempo médio
+
+  await prisma.levelStats.upsert({
+    where: { levelId },
+    update: {
+      totalCycles,
+      cyclesToday,
+      avgCyclesPerDay,
+      avgWaitTime,
+      firstCycleAt: oldestEntry?.enteredAt
+    },
+    create: {
+      levelId,
+      totalCycles,
+      cyclesToday,
+      avgCyclesPerDay,
+      avgWaitTime,
+      firstCycleAt: oldestEntry?.enteredAt
+    }
+  })
+}
+```
+
+### Privacidade
+
+```
+DADOS VISÍVEIS NA FILA PÚBLICA:
+├── Posição na fila (#1, #2, #3...)
+├── Primeiro nome + inicial do sobrenome (João S.)
+├── Código de usuário (JOA001)
+├── Score calculado
+├── Tempo na fila
+└── Número de reentradas
+
+DADOS OCULTOS:
+├── Email
+├── Wallet completa
+├── Valor do saldo
+├── Histórico de transações
+└── Dados pessoais completos
+
+NOTA: Usuário pode escolher aparecer como "Anônimo"
+      no lugar do nome (configuração no perfil)
+```
+
+### Componentes Frontend
+
+```
+/src/components/
+├── MatrixPosition/
+│   ├── PositionCard.tsx        // Card principal da posição
+│   ├── LevelStatsCards.tsx     // 4 cards de estatísticas
+│   ├── QueueList.tsx           // Lista paginada
+│   ├── QueueSearch.tsx         // Busca por nome/código
+│   └── PositionHighlight.tsx   // Destaque do usuário
+│
+├── hooks/
+│   ├── useMatrixPosition.ts    // Hook para posição
+│   ├── useLevelStats.ts        // Hook para estatísticas
+│   └── useQueueList.ts         // Hook para fila paginada
+```
+
+### Benefícios
+
+```
+PARA O USUÁRIO:
+├── Sabe exatamente onde está
+├── Entende como funciona o sistema
+├── Pode planejar baseado em estimativas
+├── Confiança na transparência
+└── Motivação ao ver progresso
+
+PARA O SISTEMA:
+├── Reduz tickets de suporte ("onde estou?")
+├── Aumenta credibilidade
+├── Diferencial competitivo
+├── Usuários mais engajados
+└── Prova de funcionamento
+```
+
+---
+
 # 8. SEGURANÇA
 
 ## 8.1 Autenticação
@@ -724,6 +1900,491 @@ IMPORTANTE: Balanço deve SEMPRE fechar ($0 diferença)
 
 ---
 
+---
+
+# 11. IMPLEMENTAÇÃO COMPLETA
+
+## 11.1 Estrutura de Arquivos Implementados
+
+Todos os arquivos abaixo foram criados e estão funcionais:
+
+```
+nextjs-app/
+├── prisma/
+│   └── schema.prisma                          # Schema atualizado com novos models
+│
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── auth/
+│   │   │   │   ├── login/route.ts
+│   │   │   │   ├── register/route.ts
+│   │   │   │   └── wallet/route.ts
+│   │   │   │
+│   │   │   ├── quotas/                        # API de Cotas
+│   │   │   │   ├── route.ts                   # GET lista, POST compra cota
+│   │   │   │   └── check/route.ts             # GET verifica se pode comprar
+│   │   │   │
+│   │   │   ├── transfers/                     # API de Transferências
+│   │   │   │   └── route.ts                   # GET histórico, POST transferir
+│   │   │   │
+│   │   │   ├── users/
+│   │   │   │   ├── me/route.ts
+│   │   │   │   └── pin/route.ts               # GET/POST gerenciar PIN
+│   │   │   │
+│   │   │   ├── matrix/                        # API de Visualização
+│   │   │   │   ├── position/[level]/route.ts  # GET posição no nível
+│   │   │   │   ├── stats/route.ts             # GET stats todos níveis
+│   │   │   │   ├── stats/[level]/route.ts     # GET stats nível específico
+│   │   │   │   └── queue/[level]/
+│   │   │   │       ├── route.ts               # GET fila paginada
+│   │   │   │       └── find-me/route.ts       # GET página do usuário
+│   │   │   │
+│   │   │   ├── notifications/                 # API de Notificações
+│   │   │   │   ├── route.ts                   # GET/PUT preferências
+│   │   │   │   └── subscribe/route.ts         # POST/DELETE push subscription
+│   │   │   │
+│   │   │   ├── payments/
+│   │   │   │   └── verify/route.ts
+│   │   │   │
+│   │   │   └── queues/route.ts
+│   │   │
+│   │   └── dashboard/
+│   │       ├── page.tsx                       # Dashboard principal (atualizado)
+│   │       ├── quotas/page.tsx                # Página de compra de cotas
+│   │       ├── matrix/page.tsx                # Página de visualização matriz
+│   │       ├── transfers/page.tsx             # Página de transferências
+│   │       └── notifications/page.tsx         # Página de notificações
+│   │
+│   ├── components/
+│   │   ├── matrix/                            # Componentes de Matriz
+│   │   │   ├── index.ts
+│   │   │   ├── PositionCard.tsx               # Card de posição na fila
+│   │   │   ├── LevelStatsCard.tsx             # Estatísticas de um nível
+│   │   │   ├── AllLevelsStats.tsx             # Visão geral 10 níveis
+│   │   │   └── QueueList.tsx                  # Lista paginada da fila
+│   │   │
+│   │   ├── quotas/                            # Componentes de Cotas
+│   │   │   ├── index.ts
+│   │   │   ├── QuotaCard.tsx                  # Card para comprar cota
+│   │   │   └── QuotaList.tsx                  # Lista de cotas do usuário
+│   │   │
+│   │   ├── transfer/                          # Componentes de Transferência
+│   │   │   ├── index.ts
+│   │   │   ├── TransferForm.tsx               # Formulário com PIN
+│   │   │   └── TransferHistory.tsx            # Histórico de transferências
+│   │   │
+│   │   └── notifications/                     # Componentes de Notificações
+│   │       ├── index.ts
+│   │       ├── NotificationSettings.tsx       # Configurações de preferências
+│   │       └── NotificationHistory.tsx        # Histórico de notificações
+│   │
+│   ├── services/
+│   │   ├── blockchain.service.ts
+│   │   ├── matrix.service.ts                  # Atualizado com funções de cotas
+│   │   ├── transfer.service.ts                # NOVO - Transferências com PIN
+│   │   ├── queue.service.ts                   # NOVO - Posição e estatísticas
+│   │   └── notification.service.ts            # NOVO - Email e Push
+│   │
+│   ├── types/
+│   │   └── index.ts                           # Atualizado com novos tipos
+│   │
+│   └── lib/
+│       └── auth.ts
+│
+└── package.json
+```
+
+## 11.2 Banco de Dados - Novos Models
+
+### Enums Adicionados
+
+```prisma
+enum NotificationChannel {
+  EMAIL
+  PUSH
+}
+
+enum NotificationEvent {
+  QUEUE_ADVANCE
+  CYCLE_COMPLETED
+  BONUS_RECEIVED
+  TRANSFER_RECEIVED
+  TRANSFER_SENT
+  WELCOME
+  SYSTEM
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+```
+
+### TransactionType Atualizado
+
+```prisma
+enum TransactionType {
+  DEPOSIT
+  CYCLE_REWARD
+  BONUS_REFERRAL
+  WITHDRAWAL
+  INTERNAL_TRANSFER_IN   # NOVO
+  INTERNAL_TRANSFER_OUT  # NOVO
+  QUOTA_PURCHASE         # NOVO
+}
+```
+
+### User Model Atualizado
+
+```prisma
+model User {
+  // ... campos existentes
+
+  // Saldo interno
+  balance             Decimal     @default(0) @db.Decimal(18, 2)
+
+  // PIN de segurança
+  pinHash             String?
+  pinAttempts         Int         @default(0)
+  pinBlockedUntil     DateTime?
+
+  // Preferências de notificação
+  notifyEmail           Boolean   @default(true)
+  notifyPush            Boolean   @default(false)
+  notifyOnQueueAdvance  Boolean   @default(true)
+  notifyOnCycle         Boolean   @default(true)
+  notifyOnBonus         Boolean   @default(true)
+  notifyOnTransfer      Boolean   @default(true)
+  notifyFrequency       String    @default("INSTANT")
+
+  // Relacionamentos
+  transfersSent       InternalTransfer[] @relation("TransfersSent")
+  transfersReceived   InternalTransfer[] @relation("TransfersReceived")
+  pushSubscriptions   PushSubscription[]
+  notificationLogs    NotificationLog[]
+}
+```
+
+### QueueEntry Atualizado
+
+```prisma
+model QueueEntry {
+  // ... campos existentes
+  quotaNumber  Int  @default(1)  // Para múltiplas cotas
+}
+```
+
+### Novos Models
+
+```prisma
+model InternalTransfer {
+  id            String    @id @default(cuid())
+  fromUserId    String
+  fromUser      User      @relation("TransfersSent", fields: [fromUserId], references: [id])
+  toUserId      String
+  toUser        User      @relation("TransfersReceived", fields: [toUserId], references: [id])
+  amount        Decimal   @db.Decimal(18, 2)
+  status        String    @default("COMPLETED")
+  createdAt     DateTime  @default(now())
+
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+
+model LevelStats {
+  id              Int       @id @default(autoincrement())
+  levelId         Int       @unique
+  totalCycles     Int       @default(0)
+  cyclesToday     Int       @default(0)
+  avgCycleTime    Float     @default(0)
+  updatedAt       DateTime  @updatedAt
+}
+
+model PushSubscription {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  endpoint    String
+  p256dh      String
+  auth        String
+  device      String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, endpoint])
+}
+
+model NotificationLog {
+  id          String              @id @default(cuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id])
+  channel     NotificationChannel
+  event       NotificationEvent
+  title       String
+  message     String
+  status      NotificationStatus  @default(PENDING)
+  sentAt      DateTime?
+  readAt      DateTime?
+  createdAt   DateTime            @default(now())
+
+  @@index([userId])
+}
+```
+
+## 11.3 APIs Implementadas
+
+### API de Cotas
+
+```
+GET  /api/quotas           → Lista todas as cotas do usuário
+POST /api/quotas           → Compra nova cota { level: number }
+GET  /api/quotas/check     → Verifica se pode comprar ?level=N
+```
+
+### API de Transferências
+
+```
+GET  /api/transfers        → Histórico de transferências
+POST /api/transfers        → Nova transferência
+     Body: { recipientWallet, amount, pin }
+```
+
+### API de PIN
+
+```
+GET  /api/users/pin        → Verifica se tem PIN
+POST /api/users/pin        → Cria/altera PIN { pin, currentPin? }
+```
+
+### API de Matriz
+
+```
+GET  /api/matrix/position/:level    → Posição do usuário no nível
+GET  /api/matrix/stats              → Estatísticas de todos os níveis
+GET  /api/matrix/stats/:level       → Estatísticas de um nível
+GET  /api/matrix/queue/:level       → Fila paginada ?page=1&limit=10
+GET  /api/matrix/queue/:level/find-me → Encontra página do usuário
+```
+
+### API de Notificações
+
+```
+GET  /api/notifications             → Preferências ou histórico
+PUT  /api/notifications             → Atualiza preferências
+POST /api/notifications/subscribe   → Registra push subscription
+DELETE /api/notifications/subscribe → Remove push subscription
+```
+
+## 11.4 Services Implementados
+
+### transfer.service.ts
+
+```typescript
+export const transferService = {
+  // PIN
+  createPin(userId, pin)              // Cria PIN com bcrypt
+  changePin(userId, currentPin, newPin)
+  verifyPin(userId, pin)              // Valida e gerencia bloqueios
+  hasPin(userId)
+
+  // Transferências
+  transfer(fromId, toWallet, amount, pin)  // Transferência com validação
+  getTransferHistory(userId, page, limit)
+  getTransferLimits(userId)           // Limites diários
+}
+```
+
+### queue.service.ts
+
+```typescript
+export const queueService = {
+  // Posição
+  getUserPosition(userId, level)
+  getAllUserPositions(userId)
+  findUserPage(userId, level, limit)
+
+  // Estatísticas
+  getLevelStats(level)
+  getAllLevelsStats()
+  calculateLevelStats(level)
+
+  // Fila
+  getQueueList(level, page, limit, currentUserId?, search?)
+}
+```
+
+### notification.service.ts
+
+```typescript
+export const notificationService = {
+  // Envio
+  sendNotification(userId, event, title, message, data?)
+
+  // Push
+  subscribePush(userId, subscription)
+  unsubscribePush(userId, endpoint)
+
+  // Preferências
+  updatePreferences(userId, prefs)
+  getPreferences(userId)
+  getNotificationHistory(userId, limit, offset)
+
+  // Eventos específicos
+  notifyQueueAdvance(userId, level, oldPos, newPos)
+  notifyCycleCompleted(userId, level, amount)
+  notifyBonusReceived(userId, referredName, level, amount)
+  notifyTransferReceived(userId, senderName, amount)
+  notifyTransferSent(userId, recipientName, amount)
+}
+```
+
+### matrix.service.ts (Atualizado)
+
+```typescript
+// Novas funções adicionadas
+countUserQuotas(userId, level)        // Conta cotas no nível
+canPurchaseQuota(userId, level)       // Valida regras de compra
+purchaseQuota(userId, level)          // Processa compra
+getUserQuotas(userId, level)          // Lista cotas do nível
+getAllUserQuotas(userId)              // Lista todas as cotas
+```
+
+## 11.5 Componentes Frontend
+
+### Matrix Components
+
+| Componente | Descrição |
+|------------|-----------|
+| `PositionCard` | Exibe posição do usuário em um nível com score e estimativas |
+| `LevelStatsCard` | Card com estatísticas de um nível (ciclos, tempo médio, etc) |
+| `AllLevelsStats` | Grid com visão geral dos 10 níveis |
+| `QueueList` | Lista paginada da fila com busca e "ir para minha posição" |
+
+### Quota Components
+
+| Componente | Descrição |
+|------------|-----------|
+| `QuotaCard` | Card para comprar cota com valor, lucro e validação |
+| `QuotaList` | Lista todas as cotas do usuário agrupadas por nível |
+
+### Transfer Components
+
+| Componente | Descrição |
+|------------|-----------|
+| `TransferForm` | Formulário completo com setup de PIN e transferência |
+| `TransferHistory` | Histórico de transferências enviadas/recebidas |
+
+### Notification Components
+
+| Componente | Descrição |
+|------------|-----------|
+| `NotificationSettings` | Configuração de canais, eventos e frequência |
+| `NotificationHistory` | Lista de notificações recebidas |
+
+## 11.6 Páginas do Dashboard
+
+### `/dashboard` (Atualizado)
+
+- 5 cards de estatísticas (saldo, bônus, cotas, ciclos, indicados)
+- 4 ações rápidas (Comprar Cotas, Ver Matriz, Transferir, Indicar)
+- Visualização das posições em todos os 10 níveis
+- Link de indicação com resumo de cotas
+
+### `/dashboard/quotas`
+
+- Grid de 10 níveis para compra de cotas
+- Validação em tempo real (requisitos, saldo)
+- Lista de cotas ativas do usuário
+- Mensagens de erro/sucesso
+
+### `/dashboard/matrix`
+
+- Estatísticas gerais da matriz
+- Cards de posição em todos os níveis
+- Seletor de nível para ver fila
+- Lista paginada com busca e destaque
+
+### `/dashboard/transfers`
+
+- Formulário de transferência
+- Setup de PIN (primeira vez)
+- Histórico de transferências
+- Informações de segurança
+
+### `/dashboard/notifications`
+
+- Configuração de canais (email, push)
+- Seleção de eventos para notificar
+- Frequência de notificações
+- Histórico de notificações
+
+## 11.7 Navegação Atualizada
+
+```
+Dashboard
+├── 🏠 Dashboard (principal)
+├── 🎫 Cotas (compra múltiplas cotas)
+├── 📊 Matriz (visualização filas)
+├── 💸 Transferências (envio saldo)
+├── 👥 Indicações (referrals)
+├── 🔔 Notificações (configurações)
+└── ⚙️ Configurações
+```
+
+## 11.8 Comandos para Deploy
+
+```bash
+# Instalar dependências
+npm install
+
+# Gerar cliente Prisma
+npx prisma generate
+
+# Rodar migrations
+npx prisma migrate dev
+
+# Build produção
+npm run build
+
+# Iniciar
+npm start
+```
+
+## 11.9 Dependências Adicionais
+
+```json
+{
+  "dependencies": {
+    "bcryptjs": "^2.4.3",      // Hash de PIN
+    "web-push": "^3.6.6",       // Push notifications
+    "nodemailer": "^6.9.7"      // Emails (ou @sendgrid/mail, resend)
+  }
+}
+```
+
+## 11.10 Variáveis de Ambiente Adicionais
+
+```bash
+# Push Notifications
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."
+VAPID_PRIVATE_KEY="..."
+VAPID_SUBJECT="mailto:suporte@7iatlas.com"
+
+# Email (escolher um)
+SENDGRID_API_KEY="..."
+# ou
+RESEND_API_KEY="..."
+# ou
+SMTP_HOST="..."
+SMTP_PORT="..."
+SMTP_USER="..."
+SMTP_PASS="..."
+```
+
+---
+
 **Documento completo para desenvolvimento.**
 
 **Arquivos de referência disponíveis:**
@@ -731,5 +2392,15 @@ IMPORTANTE: Balanço deve SEMPRE fechar ($0 diferença)
 - Dashboard Demo: `/7iatlas-dashboard/`
 - Projeto Next.js: `/7iatlas-nextjs.zip`
 - Testes: `/teste_completo_7iatlas.py`
+
+**Status da Implementação: ✅ COMPLETO**
+
+Todas as funcionalidades documentadas (7.4.1 a 7.4.6) foram implementadas:
+- ✅ Múltiplas cotas por usuário
+- ✅ Compra em níveis superiores
+- ✅ Transferência interna com PIN
+- ✅ Sistema de notificações (email + push)
+- ✅ Visualização de matriz e posição na fila
+- ✅ Frontend completo com todas as páginas
 
 *Atualizado: Dezembro 2025*
