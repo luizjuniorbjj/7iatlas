@@ -64,15 +64,62 @@ export function calculateBonus(level: number): number {
 }
 
 /**
+ * Calcula pontos de indicados com CAP Progressivo
+ * Conforme 7iATLAS-DOCUMENTACAO-TECNICA.md seção 2.3.2
+ *
+ * Faixas de rendimento decrescente:
+ * - 1-10 indicados:   ×10 pontos (máx 100 pts)
+ * - 11-30 indicados:  ×5 pontos  (máx 100 pts)
+ * - 31-50 indicados:  ×2 pontos  (máx 40 pts)
+ * - 51-100 indicados: ×1 ponto   (máx 50 pts)
+ * - 100+ indicados:   ×0 pontos  (CAP atingido)
+ *
+ * CAP MÁXIMO TOTAL: 290 pontos
+ */
+export function calculateReferralPoints(referralsCount: number): number {
+  let pontos = 0
+
+  // Faixa 1: 1-10 indicados (×10)
+  pontos += Math.min(10, referralsCount) * 10
+
+  // Faixa 2: 11-30 indicados (×5)
+  if (referralsCount > 10) {
+    pontos += Math.min(20, referralsCount - 10) * 5
+  }
+
+  // Faixa 3: 31-50 indicados (×2)
+  if (referralsCount > 30) {
+    pontos += Math.min(20, referralsCount - 30) * 2
+  }
+
+  // Faixa 4: 51-100 indicados (×1)
+  if (referralsCount > 50) {
+    pontos += Math.min(50, referralsCount - 50) * 1
+  }
+
+  return pontos // Máximo: 290 pontos
+}
+
+/**
  * Calcula o score de um usuário na fila
- * Score = (tempo_espera × 2) + (reentradas × 1.5) + (indicados × 10)
+ * Score = (tempo_espera × 2) + (reentradas × 1.5) + pontos_indicados
+ *
+ * Conforme 7iATLAS-DOCUMENTACAO-TECNICA.md seção 2.3
  */
 export function calculateScore(
   waitingHours: number,
   reentries: number,
   referralsCount: number
 ): number {
-  return (waitingHours * 2) + (reentries * 1.5) + (referralsCount * 10)
+  // Pontos de indicados com CAP Progressivo (máx 290)
+  const pontosIndicados = calculateReferralPoints(referralsCount)
+
+  // Exemplo 1: 24h espera, 2 reentradas, 5 indicados
+  // Score = 48 + 3 + 50 = 101
+  //
+  // Exemplo 2: 24h espera, 0 reentradas, 100 indicados
+  // Score = 48 + 0 + 290 = 338
+  return (waitingHours * 2) + (reentries * 1.5) + pontosIndicados
 }
 
 // ==========================================
@@ -368,6 +415,15 @@ export async function updateQueueScores(levelNumber: number) {
 }
 
 /**
+ * Atualiza scores de TODOS os níveis (para job de background)
+ */
+export async function updateAllQueueScores() {
+  for (let level = 1; level <= 10; level++) {
+    await updateQueueScores(level)
+  }
+}
+
+/**
  * Obtém os próximos 7 usuários da fila (ordenados por score)
  */
 export async function getNextMatrixParticipants(levelNumber: number) {
@@ -505,14 +561,26 @@ export async function processCycle(levelNumber: number) {
 
       case 'ADVANCE_1':
       case 'ADVANCE_2':
-        // Alimenta o caixa do próximo nível
+        // Níveis 1-9: Alimenta o caixa do próximo nível
+        // Nível 10: Vai para COMUNIDADE (não existe nível 11)
         amount = entryValue
         action = 'advance'
 
         if (levelNumber < 10) {
+          // Níveis 1-9: alimenta o caixa do próximo nível
           await prisma.level.update({
             where: { levelNumber: levelNumber + 1 },
             data: { cashBalance: { increment: amount } },
+          })
+        } else {
+          // NÍVEL 10: Vai 100% para COMUNIDADE (profit)
+          // SEM divisão, SEM bônus - tudo vai direto pro lucro do sistema
+          // A PESSOA faz reentrada normal (tratado abaixo nas reentradas)
+          await prisma.systemFunds.update({
+            where: { id: 1 },
+            data: {
+              profit: { increment: amount },  // 100% vai pro lucro
+            },
           })
         }
         break
@@ -745,10 +813,12 @@ export const matrixService = {
   calculateLevelValue,
   calculateReward,
   calculateBonus,
+  calculateReferralPoints,
   calculateScore,
   // Fila
   addToQueue,
   updateQueueScores,
+  updateAllQueueScores,
   getNextMatrixParticipants,
   // Cotas
   countUserQuotas,

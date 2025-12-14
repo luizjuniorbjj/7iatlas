@@ -159,14 +159,190 @@ bonus_indicacao = valor_nivel * 0.4
 
 ## 2.3 Sistema de Filas
 
-Cada nível tem sua fila. Score determina prioridade:
+Cada nível tem sua fila. Score determina prioridade.
+
+### 2.3.1 Fórmula do Score
 
 ```python
-score = (tempo_espera × 2) + (reentradas × 1.5) + (indicados × 10)
+score = (tempo_espera × 2) + (reentradas × 1.5) + pontos_indicados
+```
 
-# Exemplo:
-# 24h espera, 2 reentradas, 5 indicados
-# Score = 48 + 3 + 50 = 101
+### 2.3.2 CAP Progressivo de Indicados
+
+O sistema usa **rendimento decrescente** para equilibrar a competição:
+
+| Faixa de Indicados | Multiplicador | Pontos Máximos |
+|--------------------|---------------|----------------|
+| 1 a 10 | ×10 pontos | 100 pts |
+| 11 a 30 | ×5 pontos | 100 pts |
+| 31 a 50 | ×2 pontos | 40 pts |
+| 51 a 100 | ×1 ponto | 50 pts |
+| 100+ | ×0 pontos | CAP atingido |
+
+**CAP MÁXIMO TOTAL: 290 pontos**
+
+```python
+def calcular_pontos_indicados(indicados_diretos):
+    pontos = 0
+
+    # Faixa 1: 1-10 indicados (×10)
+    pontos += min(10, indicados_diretos) * 10
+
+    # Faixa 2: 11-30 indicados (×5)
+    if indicados_diretos > 10:
+        pontos += min(20, indicados_diretos - 10) * 5
+
+    # Faixa 3: 31-50 indicados (×2)
+    if indicados_diretos > 30:
+        pontos += min(20, indicados_diretos - 30) * 2
+
+    # Faixa 4: 51-100 indicados (×1)
+    if indicados_diretos > 50:
+        pontos += min(50, indicados_diretos - 50) * 1
+
+    return pontos  # Máximo: 290 pontos
+```
+
+### 2.3.3 Tabela de Pontos por Indicados
+
+| Indicados | Pontos | Cálculo |
+|-----------|--------|---------|
+| 0 | 0 | - |
+| 5 | 50 | 5×10 |
+| 10 | 100 | 10×10 |
+| 20 | 150 | 100 + (10×5) |
+| 30 | 200 | 100 + (20×5) |
+| 50 | 240 | 100 + 100 + (20×2) |
+| 100 | 290 | 100 + 100 + 40 + 50 (CAP) |
+| 200 | 290 | CAP atingido |
+
+### 2.3.4 Exemplos de Score
+
+**Exemplo 1 - Usuário com 5 indicados:**
+```
+24h espera, 2 reentradas, 5 indicados
+Score = (24×2) + (2×1.5) + 50 = 48 + 3 + 50 = 101
+```
+
+**Exemplo 2 - Líder com 100 indicados:**
+```
+24h espera, 0 reentradas, 100 indicados
+Score = (24×2) + (0×1.5) + 290 = 48 + 0 + 290 = 338
+```
+
+**Exemplo 3 - Usuário sem indicados:**
+```
+24h espera, 3 reentradas, 0 indicados
+Score = (24×2) + (3×1.5) + 0 = 48 + 4.5 + 0 = 52.5
+```
+
+### 2.3.5 Tempo para Alcançar Líderes
+
+| Situação | Diferença | Tempo para Alcançar |
+|----------|-----------|---------------------|
+| 0 ind. vs 10 ind. | 100 pts | ~2 dias |
+| 0 ind. vs 50 ind. | 240 pts | ~5 dias |
+| 0 ind. vs 100 ind. | 290 pts | ~6 dias |
+| 10 ind. vs 100 ind. | 190 pts | ~4 dias |
+
+### 2.3.6 Por que CAP Progressivo?
+
+```
+BENEFÍCIOS:
+├── Recompensa quem indica (290 > 240 > 100 > 0)
+├── Não permite dominação (máx 290 pts, não infinito)
+├── Diferencia esforço (100 ind. ≠ 10 ind. ≠ 50 ind.)
+├── Dá chance a todos (máx 6 dias para alcançar líder)
+└── Rendimento decrescente (incentiva crescimento sustentável)
+```
+
+### 2.3.7 Simulação Comparativa: Impacto dos Indicados
+
+Cenário: Sistema com **10.000 usuários ativos**, analisando usuário "Caio" com diferentes quantidades de indicados diretos.
+
+#### Comparativo: 20 vs 50 vs 100 Indicados
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    COMPARATIVO: CAIO 20 vs 50 vs 100 INDICADOS                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  INDICADOS         │    20         │    50         │    100                     │
+│  Score inicial     │    150 pts    │    240 pts    │    290 pts                 │
+│  Posição N1        │    #200       │    #50        │    #10                     │
+│  Tempo 1º ciclo    │    ~5 dias    │    ~2 dias    │    ~1 dia                  │
+│  Tempo N1→N10      │    ~25 dias   │    ~15 dias   │    ~10 dias                │
+│  Ganho RECEIVER    │    $20.460    │    $20.460    │    $20.460                 │
+│  Bônus indicação   │    ~$3.500    │    ~$9.500    │    ~$25.000                │
+│  GANHO TOTAL       │   ~$24.260    │   ~$30.460    │   ~$46.260                 │
+│  ROI (sobre $10)   │    2.426x     │    3.046x     │    4.626x                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Detalhamento por Cenário
+
+**CAIO COM 20 INDICADOS**
+
+| Nível | Tempo Acumulado | Ganho Ciclo | Bônus 40% | Total Nível |
+|-------|-----------------|-------------|-----------|-------------|
+| N1    | 5 dias          | $20         | $160      | $180        |
+| N2    | 7 dias          | $40         | $320      | $360        |
+| N3    | 9 dias          | $80         | $480      | $560        |
+| N4    | 11 dias         | $160        | $560      | $720        |
+| N5    | 14 dias         | $320        | $480      | $800        |
+| N6    | 17 dias         | $640        | $400      | $1.040      |
+| N7    | 19 dias         | $1.280      | $320      | $1.600      |
+| N8    | 21 dias         | $2.560      | $240      | $2.800      |
+| N9    | 23 dias         | $5.120      | $200      | $5.320      |
+| N10   | 25 dias         | $10.240     | $200      | $10.440     |
+| **TOTAL** | **25 dias** | **$20.460** | **~$3.500** | **~$24.260** |
+
+**CAIO COM 50 INDICADOS**
+
+| Nível | Tempo Acumulado | Ganho Ciclo | Bônus 40% | Total Nível |
+|-------|-----------------|-------------|-----------|-------------|
+| N1    | 2 dias          | $20         | $400      | $420        |
+| N2    | 3 dias          | $40         | $800      | $840        |
+| N3    | 5 dias          | $80         | $1.200    | $1.280      |
+| N4    | 7 dias          | $160        | $1.280    | $1.440      |
+| N5    | 9 dias          | $320        | $1.120    | $1.440      |
+| N6    | 10 dias         | $640        | $960      | $1.600      |
+| N7    | 11 dias         | $1.280      | $800      | $2.080      |
+| N8    | 12 dias         | $2.560      | $640      | $3.200      |
+| N9    | 14 dias         | $5.120      | $480      | $5.600      |
+| N10   | 15 dias         | $10.240     | $400      | $10.640     |
+| **TOTAL** | **15 dias** | **$20.460** | **~$9.500** | **~$30.460** |
+
+**CAIO COM 100 INDICADOS**
+
+| Nível | Tempo Acumulado | Ganho Ciclo | Bônus 40% | Total Nível |
+|-------|-----------------|-------------|-----------|-------------|
+| N1    | 1 dia           | $20         | $800      | $820        |
+| N2    | 2 dias          | $40         | $1.600    | $1.640      |
+| N3    | 3 dias          | $80         | $2.400    | $2.480      |
+| N4    | 4 dias          | $160        | $2.880    | $3.040      |
+| N5    | 5 dias          | $320        | $2.880    | $3.200      |
+| N6    | 6 dias          | $640        | $2.560    | $3.200      |
+| N7    | 7 dias          | $1.280      | $2.240    | $3.520      |
+| N8    | 8 dias          | $2.560      | $1.920    | $4.480      |
+| N9    | 9 dias          | $5.120      | $1.600    | $6.720      |
+| N10   | 10 dias         | $10.240     | $1.440    | $11.680     |
+| **TOTAL** | **10 dias** | **$20.460** | **~$25.000** | **~$46.260** |
+
+#### Análise dos Resultados
+
+```
+CONCLUSÕES:
+├── TEMPO: 100 ind. chega ao N10 em 10 dias vs 25 dias com 20 ind.
+├── GANHO BASE: Igual para todos ($20.460) - sistema justo
+├── DIFERENCIAL: Bônus de indicação é o grande multiplicador
+├── ROI: Varia de 2.426x até 4.626x dependendo dos indicados
+└── CAP FUNCIONA: 100 ind. não domina, apenas acelera e ganha mais bônus
+
+EQUILÍBRIO ALCANÇADO:
+├── Quem indica mais → ganha mais bônus + progride mais rápido
+├── Quem indica menos → ainda ganha, apenas mais devagar
+├── CAP impede dominação → max 290 pts não é infinito
+└── Todos têm chance → tempo para alcançar líder é limitado (~6 dias max)
 ```
 
 ## 2.4 Fluxo Completo

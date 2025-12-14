@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+nextjs-app/node_modules/
+
+# Build
+.next/
+nextjs-app/.next/
+out/
+build/
+dist/
+
+# Environment
+.env
+.env.local
+.env.production
+nextjs-app/.env
+nextjs-app/.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+nextjs-app/tsconfig.tsbuildinfo
+
+# Next.js
+nextjs-app/next-env.d.ts
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cache
+.cache/
