@@ -128,33 +128,83 @@ INFRA:
 VALOR DA POSIÇÃO 5:
 ├── 10% → RESERVA (anti-travamento)
 ├── 10% → OPERACIONAL (custos)
-├── 40% → BÔNUS INDICAÇÃO
+├── 40% → BÔNUS INDICAÇÃO (variável - ver regras abaixo)
 └── 40% → LUCRO SISTEMA
 
-* Sem indicador = 40% bônus vai para lucro (total 80%)
+* Bônus não pago vai para lucro do sistema
 ```
+
+### Distribuição do Recebedor (JUPITER POOL)
+
+```
+VALOR DO RECEBEDOR (2x):
+├── 90% → RECEBEDOR (ganho líquido)
+└── 10% → JUPITER POOL (fundo de liquidez)
+
+Exemplo Nível 1:
+├── Ganho bruto: $20
+├── Jupiter Pool: $2 (10%)
+└── Ganho líquido: $18 (90%)
+```
+
+### BÔNUS DE INDICAÇÃO - REGRA VARIÁVEL
+
+O bônus de indicação agora depende do **número de indicados ativos** do INDICADOR:
+
+| Indicados Ativos | Porcentagem | Bônus N1 | Bônus N5 | Bônus N10 |
+|------------------|-------------|----------|----------|-----------|
+| 0-4 indicados | **0%** | $0 | $0 | $0 |
+| 5-9 indicados | **20%** | $2 | $32 | $1.024 |
+| 10+ indicados | **40%** | $4 | $64 | $2.048 |
+
+```
+REGRAS:
+├── 0-4 indicados: SEM BÔNUS (vai para lucro do sistema)
+├── 5-9 indicados: 20% do valor do nível
+├── 10+ indicados: 40% do valor do nível (máximo)
+└── Avaliação é sobre o INDICADOR, não o indicado
+```
+
+**Exemplo prático:**
+- João indicou 3 pessoas → Recebe 0% de bônus
+- Maria indicou 7 pessoas → Recebe 20% de bônus
+- Pedro indicou 15 pessoas → Recebe 40% de bônus
 
 ## 2.2 Os 10 Níveis
 
-| Nível | Entrada | Ganho | Bônus | Acumulado |
-|-------|---------|-------|-------|-----------|
-| 1 | $10 | $20 | $4 | $20 |
-| 2 | $20 | $40 | $8 | $60 |
-| 3 | $40 | $80 | $16 | $140 |
-| 4 | $80 | $160 | $32 | $300 |
-| 5 | $160 | $320 | $64 | $620 |
-| 6 | $320 | $640 | $128 | $1,260 |
-| 7 | $640 | $1,280 | $256 | $2,540 |
-| 8 | $1,280 | $2,560 | $512 | $5,100 |
-| 9 | $2,560 | $5,120 | $1,024 | $10,220 |
-| 10 | $5,120 | $10,240 | $2,048 | $20,460 |
+### Tabela COM Jupiter Pool (10% desconto do recebedor)
+
+| Nível | Entrada | Ganho Bruto | Jupiter 10% | **Ganho Líquido** | Acumulado |
+|-------|---------|-------------|-------------|-------------------|-----------|
+| 1 | $10 | $20 | $2 | **$18** | $18 |
+| 2 | $20 | $40 | $4 | **$36** | $54 |
+| 3 | $40 | $80 | $8 | **$72** | $126 |
+| 4 | $80 | $160 | $16 | **$144** | $270 |
+| 5 | $160 | $320 | $32 | **$288** | $558 |
+| 6 | $320 | $640 | $64 | **$576** | $1,134 |
+| 7 | $640 | $1,280 | $128 | **$1,152** | $2,286 |
+| 8 | $1,280 | $2,560 | $256 | **$2,304** | $4,590 |
+| 9 | $2,560 | $5,120 | $512 | **$4,608** | $9,198 |
+| 10 | $5,120 | $10,240 | $1,024 | **$9,216** | **$18,414** |
+
+**GANHO TOTAL LÍQUIDO: $18,414** (antes era $20,460)
 
 ### Fórmulas
 
 ```python
 valor_nivel = 10 * (2 ** (nivel - 1))
-ganho_ciclo = valor_nivel * 2
-bonus_indicacao = valor_nivel * 0.4
+ganho_bruto = valor_nivel * 2
+jupiter_pool = ganho_bruto * 0.10
+ganho_liquido = ganho_bruto * 0.90
+
+# Bônus variável
+def calcular_bonus(nivel, indicados_ativos):
+    if indicados_ativos < 5:
+        return 0
+    elif indicados_ativos < 10:
+        return valor_nivel * 0.20
+    else:
+        return valor_nivel * 0.40
 ```
 
 ## 2.3 Sistema de Filas
@@ -1894,6 +1944,198 @@ PARA O SISTEMA:
 ├── Diferencial competitivo
 ├── Usuários mais engajados
 └── Prova de funcionamento
+```
+
+---
+
+## 7.4.7 Jupiter Pool - Fundo de Liquidez
+
+O Jupiter Pool é um fundo comunitário que garante liquidez ao sistema, alimentado por 10% de todos os ganhos dos recebedores.
+
+### Conceito
+
+```
+JUPITER POOL:
+├── FONTE: 10% de cada ciclo (deduzido do recebedor)
+├── FUNÇÃO: Fundo de reserva para manter ciclos
+├── VISIBILIDADE: Público e transparente para todos
+└── USO: Automático quando caixa de nível precisa
+```
+
+### Como Funciona
+
+```
+FLUXO DE ENTRADA (10% do recebedor):
+
+1. Usuário cicla no Nível 1
+   ├── Ganho bruto: $20
+   ├── Jupiter Pool: $2 (10%)
+   └── Ganho líquido: $18 (90%)
+
+2. Jupiter Pool acumula de todos os ciclos
+   ├── Nível 1: +$2 por ciclo
+   ├── Nível 5: +$32 por ciclo
+   └── Nível 10: +$1.024 por ciclo
+```
+
+### Uso do Jupiter Pool
+
+```
+QUANDO ATUA:
+├── Caixa do nível < valor necessário para ciclo
+├── Tem 7+ pessoas na fila aguardando
+└── Jupiter Pool tem saldo disponível
+
+PRIORIDADE:
+├── Níveis mais baixos primeiro (cascata)
+├── N1 → N2 → N3 → ... → N10
+└── Garante que iniciantes não travem
+
+INJEÇÃO:
+├── Automática quando condições são atendidas
+├── Sem limite de injeção
+├── Pode zerar se necessário
+```
+
+### Modelo de Dados
+
+```prisma
+model SystemFunds {
+  id            Int       @id @default(1)
+  reserve       Decimal   @default(0)
+  operational   Decimal   @default(0)
+  profit        Decimal   @default(0)
+  jupiterPool   Decimal   @default(0)  // Novo campo
+  totalIn       Decimal   @default(0)
+  totalOut      Decimal   @default(0)
+}
+
+model JupiterPoolHistory {
+  id          String    @id @default(cuid())
+  amount      Decimal
+  levelNumber Int
+  type        String    // DEPOSIT ou WITHDRAWAL
+  description String?
+  createdAt   DateTime  @default(now())
+}
+```
+
+### API Endpoints
+
+```
+GET /api/jupiter-pool/balance
+→ Retorna saldo atual do pool
+
+Response:
+{
+  "balance": 15420.50,
+  "totalDeposits": 28000.00,
+  "totalWithdrawals": 12579.50,
+  "lastActivity": "2024-01-15T10:30:00Z"
+}
+
+GET /api/jupiter-pool/history
+→ Histórico de movimentações
+
+Response:
+{
+  "data": [
+    {
+      "id": "...",
+      "amount": 2.00,
+      "levelNumber": 1,
+      "type": "DEPOSIT",
+      "description": "10% do ciclo Nível 1",
+      "createdAt": "2024-01-15T10:30:00Z"
+    },
+    {
+      "id": "...",
+      "amount": 70.00,
+      "levelNumber": 1,
+      "type": "WITHDRAWAL",
+      "description": "Injeção de liquidez no Nível 1",
+      "createdAt": "2024-01-15T09:00:00Z"
+    }
+  ],
+  "pagination": {...}
+}
+```
+
+### Simulação de Funcionamento
+
+```
+CENÁRIO: Sistema com 1.000 ciclos no Nível 1
+
+Entrada no Jupiter Pool:
+├── 1.000 ciclos × $2 = $2.000 acumulados
+
+Uso do Jupiter Pool:
+├── Caixa N1 = $50 (precisa de $70 para ciclo)
+├── Déficit = $20
+├── Jupiter Pool injeta $20
+├── Ciclo processa normalmente
+└── Saldo Jupiter: $2.000 - $20 = $1.980
+
+BENEFÍCIO:
+├── Ciclos não travam por falta de caixa
+├── Sistema mais resiliente
+├── Transparência total
+└── Autofinanciado pelos próprios ciclos
+```
+
+### Interface Visual
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    🪐 JUPITER POOL                          │
+│                   Fundo de Liquidez                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   ┌─────────────────────────────────────────────────┐      │
+│   │           SALDO ATUAL                            │      │
+│   │                                                  │      │
+│   │              $15,420.50                         │      │
+│   │                                                  │      │
+│   │   ▲ +$320 hoje    │    ▼ -$70 injetado         │      │
+│   └─────────────────────────────────────────────────┘      │
+│                                                             │
+│   ESTATÍSTICAS                                              │
+│   ├── Total recebido: $28,000                              │
+│   ├── Total injetado: $12,580                              │
+│   ├── Ciclos protegidos: 179                               │
+│   └── Última atividade: há 2 minutos                       │
+│                                                             │
+│   HISTÓRICO RECENTE                                         │
+│   ├── ⬆️ +$32 - Ciclo N5 (10:30)                            │
+│   ├── ⬆️ +$2 - Ciclo N1 (10:28)                             │
+│   ├── ⬇️ -$70 - Injeção N1 (10:25)                          │
+│   └── [Ver histórico completo]                              │
+│                                                             │
+│   ℹ️  O Jupiter Pool é alimentado por 10% de todos os       │
+│       ciclos e usado para garantir liquidez nos níveis.    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Benefícios do Jupiter Pool
+
+```
+PARA O SISTEMA:
+├── Evita travamentos por falta de caixa
+├── Ciclos continuam mesmo em baixa atividade
+├── Autofinanciado (não requer capital externo)
+└── Transparência aumenta confiança
+
+PARA O USUÁRIO:
+├── Ganho líquido previsível (90%)
+├── Contribui para saúde do sistema
+├── Pode ver saldo do pool em tempo real
+└── Segurança de que ciclos não travam
+
+MATEMÁTICA:
+├── 10% é suficiente para cobrir flutuações
+├── Acumula rápido em períodos de alta atividade
+├── Usado em períodos de baixa
+└── Sistema naturalmente equilibrado
 ```
 
 ---

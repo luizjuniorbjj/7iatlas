@@ -1,6 +1,6 @@
 // 7iATLAS - Matrix Service
 // Sistema de processamento da matriz 6x1
-// Versão 1.4 - Suporte a múltiplas cotas e compra em níveis superiores
+// Versão 2.0 - Com CAP Progressivo, Bônus Variável e Jupiter Pool
 
 import prisma from '@/lib/prisma'
 import { CyclePosition } from '@/types'
@@ -21,21 +21,8 @@ const POSITIONS: CyclePosition[] = [
   'REENTRY',    // 6 - Reentrada
 ]
 
-// ==========================================
-// TIPOS
-// ==========================================
-
-interface QuotaPurchaseResult {
-  success: boolean
-  quotaId?: string
-  quotaNumber?: number
-  error?: string
-}
-
-interface CanPurchaseResult {
-  canPurchase: boolean
-  reason?: string
-}
+// Configuração do Jupiter Pool
+const JUPITER_POOL_PERCENT = 0.10 // 10% do recebedor vai para Jupiter Pool
 
 // ==========================================
 // FUNÇÕES DE CÁLCULO
@@ -57,144 +44,167 @@ export function calculateReward(level: number): number {
 }
 
 /**
- * Calcula o bônus de indicação (40% do valor)
+ * Calcula o ganho líquido do recebedor (após desconto Jupiter Pool)
+ * Ganho líquido = Reward - 10% Jupiter Pool
  */
-export function calculateBonus(level: number): number {
-  return calculateLevelValue(level) * 0.4
+export function calculateNetReward(level: number): number {
+  const reward = calculateReward(level)
+  return reward * (1 - JUPITER_POOL_PERCENT) // 90% do reward
 }
 
 /**
- * Calcula pontos de indicados com CAP Progressivo
- * Conforme 7iATLAS-DOCUMENTACAO-TECNICA.md seção 2.3.2
+ * Calcula o valor que vai para o Jupiter Pool
+ */
+export function calculateJupiterPoolAmount(level: number): number {
+  const reward = calculateReward(level)
+  return reward * JUPITER_POOL_PERCENT // 10% do reward
+}
+
+/**
+ * CAP PROGRESSIVO DE INDICADOS
+ * Calcula pontos de indicados com rendimento decrescente
  *
- * Faixas de rendimento decrescente:
- * - 1-10 indicados:   ×10 pontos (máx 100 pts)
- * - 11-30 indicados:  ×5 pontos  (máx 100 pts)
- * - 31-50 indicados:  ×2 pontos  (máx 40 pts)
- * - 51-100 indicados: ×1 ponto   (máx 50 pts)
- * - 100+ indicados:   ×0 pontos  (CAP atingido)
+ * Faixas:
+ * - 1 a 10 indicados: ×10 pontos (máx 100 pts)
+ * - 11 a 30 indicados: ×5 pontos (máx 100 pts)
+ * - 31 a 50 indicados: ×2 pontos (máx 40 pts)
+ * - 51 a 100 indicados: ×1 ponto (máx 50 pts)
+ * - 100+ indicados: ×0 pontos (CAP atingido)
  *
  * CAP MÁXIMO TOTAL: 290 pontos
  */
 export function calculateReferralPoints(referralsCount: number): number {
-  let pontos = 0
+  let points = 0
 
   // Faixa 1: 1-10 indicados (×10)
-  pontos += Math.min(10, referralsCount) * 10
+  points += Math.min(10, referralsCount) * 10
 
   // Faixa 2: 11-30 indicados (×5)
   if (referralsCount > 10) {
-    pontos += Math.min(20, referralsCount - 10) * 5
+    points += Math.min(20, referralsCount - 10) * 5
   }
 
   // Faixa 3: 31-50 indicados (×2)
   if (referralsCount > 30) {
-    pontos += Math.min(20, referralsCount - 30) * 2
+    points += Math.min(20, referralsCount - 30) * 2
   }
 
   // Faixa 4: 51-100 indicados (×1)
   if (referralsCount > 50) {
-    pontos += Math.min(50, referralsCount - 50) * 1
+    points += Math.min(50, referralsCount - 50) * 1
   }
 
-  return pontos // Máximo: 290 pontos
+  // CAP: máximo 290 pontos
+  return Math.min(points, 290)
 }
 
 /**
  * Calcula o score de um usuário na fila
- * Score = (tempo_espera × 2) + (reentradas × 1.5) + pontos_indicados
- *
- * Conforme 7iATLAS-DOCUMENTACAO-TECNICA.md seção 2.3
+ * Score = (tempo_espera × 2) + (reentradas × 1.5) + pontos_indicados (CAP 290)
  */
 export function calculateScore(
   waitingHours: number,
   reentries: number,
   referralsCount: number
 ): number {
-  // Pontos de indicados com CAP Progressivo (máx 290)
-  const pontosIndicados = calculateReferralPoints(referralsCount)
+  const referralPoints = calculateReferralPoints(referralsCount)
+  return (waitingHours * 2) + (reentries * 1.5) + referralPoints
+}
 
-  // Exemplo 1: 24h espera, 2 reentradas, 5 indicados
-  // Score = 48 + 3 + 50 = 101
-  //
-  // Exemplo 2: 24h espera, 0 reentradas, 100 indicados
-  // Score = 48 + 0 + 290 = 338
-  return (waitingHours * 2) + (reentries * 1.5) + pontosIndicados
+/**
+ * BÔNUS DE INDICAÇÃO VARIÁVEL
+ * Calcula a porcentagem de bônus baseado no número de indicados ativos
+ *
+ * Regras:
+ * - 0-4 indicados: 0% (sem bônus)
+ * - 5-9 indicados: 20% do valor
+ * - 10+ indicados: 40% do valor
+ *
+ * @param referralsCount Número de indicados ativos do indicador
+ * @returns Porcentagem de bônus (0, 0.20 ou 0.40)
+ */
+export function calculateBonusPercent(referralsCount: number): number {
+  if (referralsCount < 5) return 0      // 0-4: sem bônus
+  if (referralsCount < 10) return 0.20  // 5-9: 20%
+  return 0.40                            // 10+: 40%
+}
+
+/**
+ * Calcula o valor do bônus de indicação
+ * Considera o número de indicados ativos do indicador
+ */
+export function calculateBonus(level: number, referralsCount: number): number {
+  const levelValue = calculateLevelValue(level)
+  const bonusPercent = calculateBonusPercent(referralsCount)
+  return levelValue * bonusPercent
+}
+
+/**
+ * Calcula o bônus máximo possível (40%) - para referência
+ */
+export function calculateMaxBonus(level: number): number {
+  return calculateLevelValue(level) * 0.4
 }
 
 // ==========================================
-// FUNÇÕES DE FILA
+// VALIDAÇÃO DE COMPRA EM NÍVEIS SUPERIORES
 // ==========================================
 
 /**
- * Adiciona usuário à fila de um nível (suporta múltiplas cotas)
- * @param userId ID do usuário
- * @param levelNumber Número do nível
- * @param isNewQuota Se true, cria nova cota; se false, incrementa reentradas da primeira cota
- * @returns A entrada na fila criada ou atualizada
+ * Verifica se usuário pode comprar cota em determinado nível
+ * Regra: Deve ter pelo menos 1 cota no nível anterior (N-1)
  */
-export async function addToQueue(userId: string, levelNumber: number, isNewQuota: boolean = false) {
-  const level = await prisma.level.findUnique({
-    where: { levelNumber },
-  })
-
-  if (!level) {
-    throw new Error(`Nível ${levelNumber} não encontrado`)
+export async function canBuyQuotaAtLevel(
+  userId: string,
+  level: number
+): Promise<{ canBuy: boolean; reason: string }> {
+  // Nível 1 sempre permitido
+  if (level === 1) {
+    return { canBuy: true, reason: 'OK' }
   }
 
-  // Se não é nova cota, verifica se já está na fila e incrementa reentradas
-  if (!isNewQuota) {
-    const existingEntry = await prisma.queueEntry.findFirst({
-      where: {
-        userId,
-        levelId: level.id,
-        status: 'WAITING',
-      },
-      orderBy: { quotaNumber: 'asc' },  // Pega a primeira cota
-    })
+  // Para níveis > 1, verificar se tem cota no nível anterior
+  const previousLevel = await prisma.level.findUnique({
+    where: { levelNumber: level - 1 },
+  })
 
-    if (existingEntry) {
-      // Incrementa reentradas da cota existente
-      await prisma.queueEntry.update({
-        where: { id: existingEntry.id },
-        data: { reentries: { increment: 1 } },
-      })
-      return existingEntry
+  if (!previousLevel) {
+    return { canBuy: false, reason: `Nível ${level - 1} não encontrado` }
+  }
+
+  const quotasInPreviousLevel = await prisma.queueEntry.count({
+    where: {
+      userId,
+      levelId: previousLevel.id,
+      status: { in: ['WAITING', 'PROCESSING'] },
+    },
+  })
+
+  // Também verificar histórico de ciclos completados no nível anterior
+  const cyclesInPreviousLevel = await prisma.cycleHistory.count({
+    where: {
+      userId,
+      levelId: previousLevel.id,
+    },
+  })
+
+  if (quotasInPreviousLevel === 0 && cyclesInPreviousLevel === 0) {
+    return {
+      canBuy: false,
+      reason: `Precisa ter pelo menos 1 cota no Nível ${level - 1} primeiro`,
     }
   }
 
-  // Conta quantas cotas o usuário já tem neste nível (todas, não só WAITING)
-  const quotaCount = await prisma.queueEntry.count({
-    where: {
-      userId,
-      levelId: level.id,
-    },
-  })
-
-  // Cria nova entrada na fila (nova cota)
-  const entry = await prisma.queueEntry.create({
-    data: {
-      userId,
-      levelId: level.id,
-      status: 'WAITING',
-      score: 0,
-      quotaNumber: quotaCount + 1,
-    },
-  })
-
-  // Atualiza total de usuários no nível
-  await prisma.level.update({
-    where: { id: level.id },
-    data: { totalUsers: { increment: 1 } },
-  })
-
-  return entry
+  return { canBuy: true, reason: 'OK' }
 }
 
 /**
- * Conta cotas ativas de um usuário em um nível
+ * Conta quantas cotas um usuário tem em um nível específico
  */
-export async function countUserQuotas(userId: string, levelNumber: number): Promise<number> {
+export async function countUserQuotasAtLevel(
+  userId: string,
+  levelNumber: number
+): Promise<number> {
   const level = await prisma.level.findUnique({
     where: { levelNumber },
   })
@@ -210,172 +220,138 @@ export async function countUserQuotas(userId: string, levelNumber: number): Prom
   })
 }
 
+// ==========================================
+// JUPITER POOL
+// ==========================================
+
 /**
- * Verifica se usuário pode comprar cota em um nível
+ * Adiciona valor ao Jupiter Pool
  */
-export async function canPurchaseQuota(userId: string, levelNumber: number): Promise<CanPurchaseResult> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+export async function addToJupiterPool(amount: number, levelNumber: number) {
+  await prisma.systemFunds.update({
+    where: { id: 1 },
+    data: {
+      jupiterPool: { increment: amount },
+    },
   })
 
-  if (!user) {
-    return { canPurchase: false, reason: 'Usuário não encontrado' }
-  }
-
-  if (user.status !== 'ACTIVE') {
-    return { canPurchase: false, reason: 'Usuário não está ativo' }
-  }
-
-  // Nível 1 sempre permitido para usuários ativos
-  if (levelNumber === 1) {
-    return { canPurchase: true }
-  }
-
-  // Para níveis > 1, verificar se tem cota no nível anterior
-  const previousLevelQuotas = await countUserQuotas(userId, levelNumber - 1)
-
-  if (previousLevelQuotas === 0) {
-    // Verifica também se já teve cota no nível anterior (já pode ter ciclado)
-    const level = await prisma.level.findUnique({
-      where: { levelNumber: levelNumber - 1 },
-    })
-
-    if (level) {
-      const hadQuota = await prisma.queueEntry.count({
-        where: {
-          userId,
-          levelId: level.id,
-        },
-      })
-
-      if (hadQuota === 0) {
-        return {
-          canPurchase: false,
-          reason: `Precisa ter pelo menos 1 cota no Nível ${levelNumber - 1} primeiro`,
-        }
-      }
-    }
-  }
-
-  return { canPurchase: true }
+  // Registra no histórico do Jupiter Pool
+  await prisma.jupiterPoolHistory.create({
+    data: {
+      amount,
+      levelNumber,
+      type: 'DEPOSIT',
+      description: `10% do ciclo Nível ${levelNumber}`,
+    },
+  })
 }
 
 /**
- * Compra uma nova cota em um nível específico
+ * Obtém saldo atual do Jupiter Pool
  */
-export async function purchaseQuota(
-  userId: string,
+export async function getJupiterPoolBalance(): Promise<number> {
+  const funds = await prisma.systemFunds.findUnique({
+    where: { id: 1 },
+  })
+  return funds?.jupiterPool?.toNumber() || 0
+}
+
+/**
+ * Usa Jupiter Pool para cobrir déficit de caixa em um nível
+ * Prioriza níveis mais baixos (cascata)
+ */
+export async function useJupiterPoolForLevel(
   levelNumber: number,
-  txHash?: string
-): Promise<QuotaPurchaseResult> {
-  // Verifica se pode comprar
-  const canPurchase = await canPurchaseQuota(userId, levelNumber)
-  if (!canPurchase.canPurchase) {
-    return { success: false, error: canPurchase.reason }
+  neededAmount: number
+): Promise<{ used: boolean; amount: number }> {
+  const poolBalance = await getJupiterPoolBalance()
+
+  if (poolBalance <= 0) {
+    return { used: false, amount: 0 }
   }
 
-  const entryValue = calculateLevelValue(levelNumber)
+  const amountToUse = Math.min(poolBalance, neededAmount)
 
-  // Verifica saldo do usuário (se pagando com saldo interno)
-  if (!txHash) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user || user.balance.toNumber() < entryValue) {
-      return { success: false, error: 'Saldo insuficiente' }
-    }
-
-    // Debita do saldo
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        balance: { decrement: entryValue },
-        totalDeposited: { increment: entryValue },
-      },
-    })
-  } else {
-    // Pagamento via blockchain - atualiza totalDeposited
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        totalDeposited: { increment: entryValue },
-      },
-    })
-  }
-
-  // Cria nova cota na fila
-  const entry = await addToQueue(userId, levelNumber, true)
+  // Deduz do Jupiter Pool
+  await prisma.systemFunds.update({
+    where: { id: 1 },
+    data: {
+      jupiterPool: { decrement: amountToUse },
+    },
+  })
 
   // Adiciona ao caixa do nível
   await prisma.level.update({
     where: { levelNumber },
-    data: { cashBalance: { increment: entryValue } },
-  })
-
-  // Registra transação
-  await prisma.transaction.create({
     data: {
-      userId,
-      type: 'QUOTA_PURCHASE',
-      amount: entryValue,
-      txHash,
-      status: 'CONFIRMED',
-      confirmedAt: new Date(),
-      description: `Compra de cota - Nível ${levelNumber}`,
-      metadata: {
-        levelNumber,
-        quotaNumber: entry.quotaNumber,
-      },
+      cashBalance: { increment: amountToUse },
     },
   })
 
-  // Atualiza totais do sistema
-  await prisma.systemFunds.update({
-    where: { id: 1 },
-    data: { totalIn: { increment: entryValue } },
+  // Registra no histórico
+  await prisma.jupiterPoolHistory.create({
+    data: {
+      amount: amountToUse,
+      levelNumber,
+      type: 'WITHDRAWAL',
+      description: `Injeção de liquidez no Nível ${levelNumber}`,
+    },
   })
 
-  return {
-    success: true,
-    quotaId: entry.id,
-    quotaNumber: entry.quotaNumber,
-  }
+  return { used: true, amount: amountToUse }
 }
 
+// ==========================================
+// FUNÇÕES DE FILA
+// ==========================================
+
 /**
- * Lista todas as cotas de um usuário em um nível
+ * Adiciona usuário à fila de um nível
  */
-export async function getUserQuotas(userId: string, levelNumber: number) {
+export async function addToQueue(userId: string, levelNumber: number) {
   const level = await prisma.level.findUnique({
     where: { levelNumber },
   })
 
-  if (!level) return []
+  if (!level) {
+    throw new Error(`Nível ${levelNumber} não encontrado`)
+  }
 
-  return prisma.queueEntry.findMany({
+  // Verifica se já está na fila deste nível
+  const existingEntry = await prisma.queueEntry.findFirst({
     where: {
       userId,
       levelId: level.id,
+      status: 'WAITING',
     },
-    orderBy: { quotaNumber: 'asc' },
   })
-}
 
-/**
- * Lista todas as cotas de um usuário em todos os níveis
- */
-export async function getAllUserQuotas(userId: string) {
-  return prisma.queueEntry.findMany({
-    where: { userId },
-    include: {
-      level: true,
+  if (existingEntry) {
+    // Incrementa reentradas
+    await prisma.queueEntry.update({
+      where: { id: existingEntry.id },
+      data: { reentries: { increment: 1 } },
+    })
+    return existingEntry
+  }
+
+  // Cria nova entrada na fila
+  const entry = await prisma.queueEntry.create({
+    data: {
+      userId,
+      levelId: level.id,
+      status: 'WAITING',
+      score: 0,
     },
-    orderBy: [
-      { levelId: 'asc' },
-      { quotaNumber: 'asc' },
-    ],
   })
+
+  // Atualiza total de usuários no nível
+  await prisma.level.update({
+    where: { id: level.id },
+    data: { totalUsers: { increment: 1 } },
+  })
+
+  return entry
 }
 
 /**
@@ -415,15 +391,6 @@ export async function updateQueueScores(levelNumber: number) {
 }
 
 /**
- * Atualiza scores de TODOS os níveis (para job de background)
- */
-export async function updateAllQueueScores() {
-  for (let level = 1; level <= 10; level++) {
-    await updateQueueScores(level)
-  }
-}
-
-/**
  * Obtém os próximos 7 usuários da fila (ordenados por score)
  */
 export async function getNextMatrixParticipants(levelNumber: number) {
@@ -445,7 +412,11 @@ export async function getNextMatrixParticipants(levelNumber: number) {
     orderBy: { score: 'desc' },
     take: MATRIX_SIZE,
     include: {
-      user: true,
+      user: {
+        include: {
+          referrals: true,
+        },
+      },
     },
   })
 }
@@ -456,6 +427,7 @@ export async function getNextMatrixParticipants(levelNumber: number) {
 
 /**
  * Verifica se um nível pode processar um ciclo
+ * Inclui verificação de Jupiter Pool para cobrir déficit
  */
 export async function canProcessCycle(levelNumber: number): Promise<boolean> {
   const level = await prisma.level.findUnique({
@@ -476,11 +448,21 @@ export async function canProcessCycle(levelNumber: number): Promise<boolean> {
 
   // Verifica se tem saldo suficiente no caixa
   const requiredAmount = level.entryValue.toNumber() * MATRIX_SIZE
-  return level.cashBalance.toNumber() >= requiredAmount
+  const currentBalance = level.cashBalance.toNumber()
+
+  if (currentBalance >= requiredAmount) return true
+
+  // Se não tem saldo suficiente, verifica Jupiter Pool
+  const deficit = requiredAmount - currentBalance
+  const jupiterBalance = await getJupiterPoolBalance()
+
+  // Pode processar se Jupiter Pool cobre o déficit
+  return jupiterBalance >= deficit
 }
 
 /**
  * Processa um ciclo completo da matriz
+ * Com Jupiter Pool e Bônus Variável
  */
 export async function processCycle(levelNumber: number) {
   // Verifica se pode processar
@@ -494,6 +476,16 @@ export async function processCycle(levelNumber: number) {
 
   if (!level) throw new Error('Nível não encontrado')
 
+  const entryValue = level.entryValue.toNumber()
+  const requiredAmount = entryValue * MATRIX_SIZE
+  const currentBalance = level.cashBalance.toNumber()
+
+  // Se precisar, usa Jupiter Pool para cobrir déficit
+  if (currentBalance < requiredAmount) {
+    const deficit = requiredAmount - currentBalance
+    await useJupiterPoolForLevel(levelNumber, deficit)
+  }
+
   // Obtém os 7 participantes
   const participants = await getNextMatrixParticipants(levelNumber)
 
@@ -504,9 +496,7 @@ export async function processCycle(levelNumber: number) {
   // Gera ID único para este ciclo
   const cycleGroupId = `cycle_${Date.now()}_${levelNumber}`
 
-  const entryValue = level.entryValue.toNumber()
   const rewardValue = level.rewardValue.toNumber()
-  const bonusValue = level.bonusValue.toNumber()
 
   // Processa cada posição
   const results = []
@@ -520,17 +510,23 @@ export async function processCycle(levelNumber: number) {
 
     switch (position) {
       case 'RECEIVER':
-        // Recebedor ganha 2x
-        amount = rewardValue
+        // Recebedor ganha 2x - 10% Jupiter Pool = 90%
+        const grossReward = rewardValue
+        const jupiterAmount = grossReward * JUPITER_POOL_PERCENT
+        const netReward = grossReward - jupiterAmount
+        amount = netReward
         action = 'receive'
 
-        // Paga ao recebedor
-        await processPayment(participant.user.walletAddress, amount, `Ciclo Nível ${levelNumber}`)
+        // Adiciona 10% ao Jupiter Pool
+        await addToJupiterPool(jupiterAmount, levelNumber)
+
+        // Paga ao recebedor (90%)
+        await processPayment(participant.user.walletAddress, netReward, `Ciclo Nível ${levelNumber}`)
 
         // Atualiza saldo do usuário
         await prisma.user.update({
           where: { id: participant.userId },
-          data: { totalEarned: { increment: amount } },
+          data: { totalEarned: { increment: netReward } },
         })
 
         // Avança para próximo nível (se não for nível 10)
@@ -541,13 +537,12 @@ export async function processCycle(levelNumber: number) {
         // Reentra no mesmo nível
         await addToQueue(participant.userId, levelNumber)
 
-        // Paga bônus ao indicador
+        // Paga bônus ao indicador (com nova regra variável)
         if (participant.user.referrerId) {
           await payReferralBonus(
             participant.user.referrerId,
             participant.userId,
-            levelNumber,
-            bonusValue
+            levelNumber
           )
         }
         break
@@ -561,56 +556,62 @@ export async function processCycle(levelNumber: number) {
 
       case 'ADVANCE_1':
       case 'ADVANCE_2':
-        // Níveis 1-9: Alimenta o caixa do próximo nível
-        // Nível 10: Vai para COMUNIDADE (não existe nível 11)
+        // Alimenta o caixa do próximo nível
         amount = entryValue
         action = 'advance'
 
         if (levelNumber < 10) {
-          // Níveis 1-9: alimenta o caixa do próximo nível
           await prisma.level.update({
             where: { levelNumber: levelNumber + 1 },
             data: { cashBalance: { increment: amount } },
-          })
-        } else {
-          // NÍVEL 10: Vai 100% para COMUNIDADE (profit)
-          // SEM divisão, SEM bônus - tudo vai direto pro lucro do sistema
-          // A PESSOA faz reentrada normal (tratado abaixo nas reentradas)
-          await prisma.systemFunds.update({
-            where: { id: 1 },
-            data: {
-              profit: { increment: amount },  // 100% vai pro lucro
-            },
           })
         }
         break
 
       case 'COMMUNITY':
-        // Distribui: 10% reserva, 10% operacional, 40% bônus (se houver), 40% lucro
+        // Distribui: 10% reserva, 10% operacional, 40% bônus (variável), 40% lucro
         amount = entryValue
         action = 'community'
 
         const reserveAmount = amount * 0.10
         const operationalAmount = amount * 0.10
-        const bonusAmount = amount * 0.40
+        const maxBonusAmount = amount * 0.40
         const profitAmount = amount * 0.40
+
+        // Verifica se tem indicador e calcula bônus variável
+        let actualBonusAmount = 0
+        let unusedBonusAmount = maxBonusAmount
+
+        if (participant.user.referrerId) {
+          const referrer = await prisma.user.findUnique({
+            where: { id: participant.user.referrerId },
+            include: { referrals: true },
+          })
+
+          if (referrer && referrer.status === 'ACTIVE') {
+            const referrerActiveReferrals = referrer.referrals.filter(r => r.status === 'ACTIVE').length
+            const bonusPercent = calculateBonusPercent(referrerActiveReferrals)
+            actualBonusAmount = amount * bonusPercent
+            unusedBonusAmount = maxBonusAmount - actualBonusAmount
+          }
+        }
 
         await prisma.systemFunds.update({
           where: { id: 1 },
           data: {
             reserve: { increment: reserveAmount },
             operational: { increment: operationalAmount },
-            profit: { increment: profitAmount + (participant.user.referrerId ? 0 : bonusAmount) },
+            profit: { increment: profitAmount + unusedBonusAmount },
           },
         })
 
-        // Se tiver indicador, paga bônus
-        if (participant.user.referrerId) {
-          await payReferralBonus(
+        // Se tiver bônus a pagar
+        if (actualBonusAmount > 0 && participant.user.referrerId) {
+          await payReferralBonusAmount(
             participant.user.referrerId,
             participant.userId,
             levelNumber,
-            bonusAmount
+            actualBonusAmount
           )
         }
         break
@@ -703,9 +704,54 @@ async function processPayment(toAddress: string, amount: number, description: st
 }
 
 /**
- * Paga bônus de indicação
+ * Paga bônus de indicação (com regra variável)
  */
 async function payReferralBonus(
+  referrerId: string,
+  referredId: string,
+  levelNumber: number
+) {
+  const referrer = await prisma.user.findUnique({
+    where: { id: referrerId },
+    include: { referrals: true },
+  })
+
+  if (!referrer || referrer.status !== 'ACTIVE') return
+
+  // Conta indicados ativos
+  const activeReferrals = referrer.referrals.filter(r => r.status === 'ACTIVE').length
+
+  // Calcula bônus variável
+  const bonusAmount = calculateBonus(levelNumber, activeReferrals)
+
+  if (bonusAmount <= 0) {
+    // Indicador não tem indicados suficientes para receber bônus
+    // O valor vai para o lucro do sistema
+    const maxBonus = calculateMaxBonus(levelNumber)
+    await prisma.systemFunds.update({
+      where: { id: 1 },
+      data: { profit: { increment: maxBonus } },
+    })
+    return
+  }
+
+  await payReferralBonusAmount(referrerId, referredId, levelNumber, bonusAmount)
+
+  // Se bônus < 40%, a diferença vai para lucro
+  const maxBonus = calculateMaxBonus(levelNumber)
+  const unusedBonus = maxBonus - bonusAmount
+  if (unusedBonus > 0) {
+    await prisma.systemFunds.update({
+      where: { id: 1 },
+      data: { profit: { increment: unusedBonus } },
+    })
+  }
+}
+
+/**
+ * Paga um valor específico de bônus
+ */
+async function payReferralBonusAmount(
   referrerId: string,
   referredId: string,
   levelNumber: number,
@@ -715,7 +761,7 @@ async function payReferralBonus(
     where: { id: referrerId },
   })
 
-  if (!referrer || referrer.status !== 'ACTIVE') return
+  if (!referrer) return
 
   const level = await prisma.level.findUnique({
     where: { levelNumber },
@@ -804,6 +850,58 @@ export async function activateUser(userId: string, depositTxHash: string) {
   return true
 }
 
+/**
+ * Compra cota adicional em um nível
+ */
+export async function buyQuotaAtLevel(
+  userId: string,
+  levelNumber: number,
+  depositTxHash: string
+) {
+  // Valida se pode comprar
+  const { canBuy, reason } = await canBuyQuotaAtLevel(userId, levelNumber)
+  if (!canBuy) {
+    throw new Error(reason)
+  }
+
+  const entryValue = calculateLevelValue(levelNumber)
+
+  // Registra transação
+  await prisma.transaction.create({
+    data: {
+      userId,
+      type: 'DEPOSIT',
+      amount: entryValue,
+      txHash: depositTxHash,
+      status: 'CONFIRMED',
+      confirmedAt: new Date(),
+      description: `Compra de cota - Nível ${levelNumber}`,
+    },
+  })
+
+  // Adiciona ao caixa do nível
+  await prisma.level.update({
+    where: { levelNumber },
+    data: { cashBalance: { increment: entryValue } },
+  })
+
+  // Adiciona à fila do nível
+  await addToQueue(userId, levelNumber)
+
+  // Atualiza totais
+  await prisma.user.update({
+    where: { id: userId },
+    data: { totalDeposited: { increment: entryValue } },
+  })
+
+  await prisma.systemFunds.update({
+    where: { id: 1 },
+    data: { totalIn: { increment: entryValue } },
+  })
+
+  return true
+}
+
 // ==========================================
 // EXPORTS
 // ==========================================
@@ -812,22 +910,33 @@ export const matrixService = {
   // Cálculos
   calculateLevelValue,
   calculateReward,
-  calculateBonus,
+  calculateNetReward,
+  calculateJupiterPoolAmount,
   calculateReferralPoints,
   calculateScore,
-  // Fila
+  calculateBonusPercent,
+  calculateBonus,
+  calculateMaxBonus,
+
+  // Validações
+  canBuyQuotaAtLevel,
+  countUserQuotasAtLevel,
+
+  // Jupiter Pool
+  addToJupiterPool,
+  getJupiterPoolBalance,
+  useJupiterPoolForLevel,
+
+  // Filas
   addToQueue,
   updateQueueScores,
-  updateAllQueueScores,
   getNextMatrixParticipants,
-  // Cotas
-  countUserQuotas,
-  canPurchaseQuota,
-  purchaseQuota,
-  getUserQuotas,
-  getAllUserQuotas,
+
   // Ciclos
   canProcessCycle,
   processCycle,
+
+  // Usuários
   activateUser,
+  buyQuotaAtLevel,
 }

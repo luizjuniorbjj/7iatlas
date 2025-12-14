@@ -17,22 +17,6 @@ export interface User {
   totalEarned: number
   totalBonus: number
   totalWithdrawn: number
-  balance: number  // Saldo disponível para transferências
-  // PIN
-  pinHash?: string
-  pinAttempts: number
-  pinBlockedUntil?: Date
-  pinCreatedAt?: Date
-  // Preferências de notificação
-  notifyEmail: boolean
-  notifyPush: boolean
-  notifyOnQueueAdvance: boolean
-  notifyOnCycle: boolean
-  notifyOnBonus: boolean
-  notifyOnTransfer: boolean
-  notifyFrequency: string
-  showNameInQueue: boolean
-  // Timestamps
   createdAt: Date
   activatedAt?: Date
 }
@@ -75,7 +59,6 @@ export interface QueueEntry {
   score: number
   reentries: number
   status: QueueStatus
-  quotaNumber: number  // Número da cota (1, 2, 3...)
   enteredAt: Date
   processedAt?: Date
 }
@@ -108,14 +91,7 @@ export interface Transaction {
   confirmedAt?: Date
 }
 
-export type TransactionType =
-  | 'DEPOSIT'
-  | 'CYCLE_REWARD'
-  | 'BONUS_REFERRAL'
-  | 'WITHDRAWAL'
-  | 'INTERNAL_TRANSFER_IN'
-  | 'INTERNAL_TRANSFER_OUT'
-  | 'QUOTA_PURCHASE'
+export type TransactionType = 'DEPOSIT' | 'CYCLE_REWARD' | 'BONUS_REFERRAL' | 'WITHDRAWAL'
 export type TransactionStatus = 'PENDING' | 'CONFIRMED' | 'FAILED'
 
 // ==========================================
@@ -231,6 +207,7 @@ export interface SystemFunds {
   reserve: number
   operational: number
   profit: number
+  jupiterPool: number  // Novo: Jupiter Pool
   totalIn: number
   totalOut: number
 }
@@ -242,6 +219,7 @@ export interface SystemConfig {
   operationalPercent: number
   bonusPercent: number
   profitPercent: number
+  jupiterPoolPercent: number  // Novo: 10%
   isMaintenanceMode: boolean
   isProcessingEnabled: boolean
 }
@@ -253,143 +231,71 @@ export interface SystemStats {
   totalPaid: number
   totalCycles: number
   systemProfit: number
+  jupiterPoolBalance: number  // Novo
 }
 
 // ==========================================
-// TRANSFER TYPES (v1.4)
+// JUPITER POOL TYPES
 // ==========================================
 
-export interface InternalTransfer {
+export interface JupiterPoolHistory {
   id: string
-  fromUserId: string
-  toUserId: string
   amount: number
-  status: string
+  levelNumber: number
+  type: 'DEPOSIT' | 'WITHDRAWAL'
   description?: string
   createdAt: Date
 }
 
-export interface TransferLimits {
-  minAmount: number
-  dailyLimit: number
-  maxTransactionsPerDay: number
-  usedToday: number
-  remainingToday: number
-  transactionsToday: number
-  transactionsRemaining: number
+export interface JupiterPoolStats {
+  balance: number
+  totalDeposits: number
+  totalWithdrawals: number
+  lastActivity?: Date
 }
 
 // ==========================================
-// QUOTA TYPES (v1.4)
+// BONUS RULES (Nova regra variável)
 // ==========================================
 
-export interface QuotaInfo {
-  id: string
-  quotaNumber: number
-  levelNumber: number
-  status: QueueStatus
-  score: number
-  reentries: number
-  position?: number
-  enteredAt: Date
-  processedAt?: Date
+export interface BonusRule {
+  minReferrals: number
+  maxReferrals: number
+  bonusPercent: number
 }
 
-export interface CanPurchaseResult {
-  canPurchase: boolean
-  reason?: string
-}
+// Regras de bônus de indicação:
+// 0-4 indicados: 0%
+// 5-9 indicados: 20%
+// 10+ indicados: 40%
+export const BONUS_RULES: BonusRule[] = [
+  { minReferrals: 0, maxReferrals: 4, bonusPercent: 0 },
+  { minReferrals: 5, maxReferrals: 9, bonusPercent: 0.20 },
+  { minReferrals: 10, maxReferrals: Infinity, bonusPercent: 0.40 },
+]
 
 // ==========================================
-// MATRIX VISUALIZATION TYPES (v1.4)
+// CAP PROGRESSIVO DE INDICADOS
 // ==========================================
 
-export interface QueuePosition {
-  position: number
-  totalInQueue: number
-  percentile: number
-  estimatedWait: string
-  score: number
-  enteredAt: Date
-  reentries: number
-  quotaNumber: number
+export interface ReferralPointsTier {
+  minReferrals: number
+  maxReferrals: number
+  pointsPerReferral: number
+  maxPoints: number
 }
 
-export interface LevelStats {
-  levelId: number
-  levelNumber: number
-  entryValue: number
-  rewardValue: number
-  totalCycles: number
-  cyclesToday: number
-  avgCyclesPerDay: number
-  avgWaitTime: number
-  totalInQueue: number
-  oldestEntry: {
-    enteredAt: Date
-    daysAgo: number
-  } | null
-}
+// Faixas do CAP Progressivo:
+// 1-10: ×10 pontos (máx 100)
+// 11-30: ×5 pontos (máx 100)
+// 31-50: ×2 pontos (máx 40)
+// 51-100: ×1 ponto (máx 50)
+// CAP TOTAL: 290 pontos
+export const REFERRAL_POINTS_TIERS: ReferralPointsTier[] = [
+  { minReferrals: 1, maxReferrals: 10, pointsPerReferral: 10, maxPoints: 100 },
+  { minReferrals: 11, maxReferrals: 30, pointsPerReferral: 5, maxPoints: 100 },
+  { minReferrals: 31, maxReferrals: 50, pointsPerReferral: 2, maxPoints: 40 },
+  { minReferrals: 51, maxReferrals: 100, pointsPerReferral: 1, maxPoints: 50 },
+]
 
-export interface QueueListItem {
-  position: number
-  userId: string
-  name: string
-  code: string
-  score: number
-  timeInQueue: string
-  reentries: number
-  isCurrentUser: boolean
-}
-
-// ==========================================
-// NOTIFICATION TYPES (v1.4)
-// ==========================================
-
-export type NotificationChannel = 'EMAIL' | 'PUSH'
-
-export type NotificationEvent =
-  | 'QUEUE_ADVANCE'
-  | 'CYCLE_COMPLETED'
-  | 'BONUS_RECEIVED'
-  | 'TRANSFER_RECEIVED'
-  | 'TRANSFER_SENT'
-  | 'SYSTEM_ALERT'
-
-export type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED' | 'CLICKED'
-
-export interface NotificationPreferences {
-  notifyEmail: boolean
-  notifyPush: boolean
-  notifyOnQueueAdvance: boolean
-  notifyOnCycle: boolean
-  notifyOnBonus: boolean
-  notifyOnTransfer: boolean
-  notifyFrequency: 'realtime' | 'daily' | 'weekly'
-}
-
-export interface NotificationLog {
-  id: string
-  userId: string
-  channel: NotificationChannel
-  event: NotificationEvent
-  title: string
-  body: string
-  data?: Record<string, any>
-  status: NotificationStatus
-  sentAt?: Date
-  clickedAt?: Date
-  errorMsg?: string
-  createdAt: Date
-}
-
-export interface PushSubscription {
-  id: string
-  userId: string
-  endpoint: string
-  p256dh: string
-  auth: string
-  device?: string
-  createdAt: Date
-  lastUsedAt?: Date
-}
+export const MAX_REFERRAL_POINTS = 290
