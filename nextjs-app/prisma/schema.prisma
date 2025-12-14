@@ -1,0 +1,397 @@
+// 7iATLAS - Schema do Banco de Dados
+// Sistema de Redistribuição Progressiva
+// Versão 1.4 - Com múltiplas cotas, transferências e notificações
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum TransactionType {
+  DEPOSIT
+  CYCLE_REWARD
+  BONUS_REFERRAL
+  WITHDRAWAL
+  INTERNAL_TRANSFER_IN
+  INTERNAL_TRANSFER_OUT
+  QUOTA_PURCHASE
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum QueueStatus {
+  WAITING
+  PROCESSING
+  COMPLETED
+}
+
+enum CyclePosition {
+  RECEIVER    // Posição 0 - Recebedor (ganha 2x)
+  DONATE_1    // Posição 1 - Doa para recebedor
+  ADVANCE_1   // Posição 2 - Avança para próximo nível
+  DONATE_2    // Posição 3 - Doa para recebedor
+  ADVANCE_2   // Posição 4 - Avança para próximo nível
+  COMMUNITY   // Posição 5 - Distribuição comunitária
+  REENTRY     // Posição 6 - Reentrada no mesmo nível
+}
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+}
+
+enum NotificationEvent {
+  QUEUE_ADVANCE
+  CYCLE_COMPLETED
+  BONUS_RECEIVED
+  TRANSFER_RECEIVED
+  TRANSFER_SENT
+  SYSTEM_ALERT
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  CLICKED
+}
+
+// ==========================================
+// MODELS
+// ==========================================
+
+model User {
+  id              String      @id @default(cuid())
+  email           String?     @unique
+  passwordHash    String?
+  walletAddress   String      @unique
+  name            String?
+  referralCode    String      @unique @default(cuid())
+
+  // Relacionamento de indicação
+  referrerId      String?
+  referrer        User?       @relation("Referrals", fields: [referrerId], references: [id])
+  referrals       User[]      @relation("Referrals")
+
+  // Status e estatísticas
+  status          UserStatus  @default(PENDING)
+  currentLevel    Int         @default(1)
+  totalDeposited  Decimal     @default(0) @db.Decimal(18, 2)
+  totalEarned     Decimal     @default(0) @db.Decimal(18, 2)
+  totalBonus      Decimal     @default(0) @db.Decimal(18, 2)
+  totalWithdrawn  Decimal     @default(0) @db.Decimal(18, 2)
+  balance         Decimal     @default(0) @db.Decimal(18, 2)  // Saldo disponível para transferências
+
+  // PIN de segurança para transferências
+  pinHash           String?
+  pinAttempts       Int         @default(0)
+  pinBlockedUntil   DateTime?
+  pinCreatedAt      DateTime?
+
+  // Preferências de notificação
+  notifyEmail           Boolean   @default(true)
+  notifyPush            Boolean   @default(false)
+  notifyOnQueueAdvance  Boolean   @default(true)
+  notifyOnCycle         Boolean   @default(true)
+  notifyOnBonus         Boolean   @default(true)
+  notifyOnTransfer      Boolean   @default(true)
+  notifyFrequency       String    @default("realtime")  // realtime, daily, weekly
+  showNameInQueue       Boolean   @default(true)  // Mostrar nome na fila pública
+
+  // Timestamps
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  activatedAt     DateTime?
+
+  // Relacionamentos
+  queueEntries        QueueEntry[]
+  cycleHistory        CycleHistory[]
+  bonusReceived       BonusHistory[]        @relation("BonusReceiver")
+  bonusGenerated      BonusHistory[]        @relation("BonusGenerator")
+  transactions        Transaction[]
+  transfersSent       InternalTransfer[]    @relation("TransfersSent")
+  transfersReceived   InternalTransfer[]    @relation("TransfersReceived")
+  pushSubscriptions   PushSubscription[]
+  notifications       NotificationLog[]
+
+  @@index([referrerId])
+  @@index([walletAddress])
+  @@index([referralCode])
+  @@index([status])
+}
+
+model Level {
+  id            Int       @id @default(autoincrement())
+  levelNumber   Int       @unique
+  entryValue    Decimal   @db.Decimal(18, 2)
+  rewardValue   Decimal   @db.Decimal(18, 2)
+  bonusValue    Decimal   @db.Decimal(18, 2)
+  cashBalance   Decimal   @default(0) @db.Decimal(18, 2)
+  totalCycles   Int       @default(0)
+  totalUsers    Int       @default(0)
+
+  // Relacionamentos
+  queueEntries  QueueEntry[]
+  cycleHistory  CycleHistory[]
+  bonusHistory  BonusHistory[]
+  stats         LevelStats?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model QueueEntry {
+  id          String      @id @default(cuid())
+
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+
+  levelId     Int
+  level       Level       @relation(fields: [levelId], references: [id])
+
+  position    Int         @default(0)
+  score       Decimal     @default(0) @db.Decimal(18, 4)
+  reentries   Int         @default(0)
+  status      QueueStatus @default(WAITING)
+
+  // Identificador da cota (para múltiplas cotas)
+  quotaNumber Int         @default(1)  // 1, 2, 3... para o mesmo usuário/nível
+
+  enteredAt   DateTime    @default(now())
+  processedAt DateTime?
+
+  @@index([userId])
+  @@index([levelId])
+  @@index([status])
+  @@index([score])
+  @@index([userId, levelId, status])  // Índice para buscar cotas do usuário por nível
+}
+
+model CycleHistory {
+  id          String        @id @default(cuid())
+
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+
+  levelId     Int
+  level       Level         @relation(fields: [levelId], references: [id])
+
+  position    CyclePosition
+  amount      Decimal       @db.Decimal(18, 2)
+  txHash      String?
+  status      TransactionStatus @default(PENDING)
+
+  // IDs dos participantes do ciclo
+  cycleGroupId String?      // Agrupa os 7 participantes do mesmo ciclo
+
+  createdAt   DateTime      @default(now())
+  confirmedAt DateTime?
+
+  @@index([userId])
+  @@index([levelId])
+  @@index([cycleGroupId])
+}
+
+model BonusHistory {
+  id            String    @id @default(cuid())
+
+  // Quem recebe o bônus (indicador)
+  referrerId    String
+  referrer      User      @relation("BonusReceiver", fields: [referrerId], references: [id])
+
+  // Quem gerou o bônus (indicado que ciclou)
+  referredId    String
+  referred      User      @relation("BonusGenerator", fields: [referredId], references: [id])
+
+  levelId       Int
+  level         Level     @relation(fields: [levelId], references: [id])
+
+  amount        Decimal   @db.Decimal(18, 2)
+  txHash        String?
+  status        TransactionStatus @default(PENDING)
+
+  createdAt     DateTime  @default(now())
+  confirmedAt   DateTime?
+
+  @@index([referrerId])
+  @@index([referredId])
+  @@index([levelId])
+}
+
+model Transaction {
+  id            String    @id @default(cuid())
+
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+
+  type          TransactionType
+  amount        Decimal   @db.Decimal(18, 2)
+  txHash        String?   @unique
+  fromAddress   String?
+  toAddress     String?
+  status        TransactionStatus @default(PENDING)
+
+  // Metadados
+  description   String?
+  metadata      Json?
+
+  createdAt     DateTime  @default(now())
+  confirmedAt   DateTime?
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([txHash])
+}
+
+model SystemFunds {
+  id            Int       @id @default(1)
+  reserve       Decimal   @default(0) @db.Decimal(18, 2)  // 10% - Anti-travamento
+  operational   Decimal   @default(0) @db.Decimal(18, 2)  // 10% - Custos operacionais
+  profit        Decimal   @default(0) @db.Decimal(18, 2)  // 40% - Lucro do sistema
+
+  totalIn       Decimal   @default(0) @db.Decimal(18, 2)
+  totalOut      Decimal   @default(0) @db.Decimal(18, 2)
+
+  updatedAt     DateTime  @updatedAt
+}
+
+model SystemConfig {
+  id            Int       @id @default(1)
+
+  // Configurações de processamento
+  minQueueSize  Int       @default(7)
+  maxCyclesPerRun Int     @default(10)
+
+  // Configurações de distribuição (Posição 5)
+  reservePercent    Decimal @default(10) @db.Decimal(5, 2)
+  operationalPercent Decimal @default(10) @db.Decimal(5, 2)
+  bonusPercent      Decimal @default(40) @db.Decimal(5, 2)
+  profitPercent     Decimal @default(40) @db.Decimal(5, 2)
+
+  // Limites de transferência
+  transferLimitNoKyc    Decimal @default(100) @db.Decimal(18, 2)   // Limite sem KYC
+  transferLimitKyc      Decimal @default(1000) @db.Decimal(18, 2)  // Limite com KYC
+  transferMinAmount     Decimal @default(10) @db.Decimal(18, 2)    // Mínimo por transferência
+  transferMaxPerDay     Int     @default(3)                        // Máx transações/dia sem KYC
+
+  // Status
+  isMaintenanceMode Boolean @default(false)
+  isProcessingEnabled Boolean @default(true)
+
+  updatedAt     DateTime  @updatedAt
+}
+
+// ==========================================
+// NOVOS MODELOS - Versão 1.4
+// ==========================================
+
+// Transferências internas entre usuários
+model InternalTransfer {
+  id            String    @id @default(cuid())
+
+  fromUserId    String
+  fromUser      User      @relation("TransfersSent", fields: [fromUserId], references: [id])
+
+  toUserId      String
+  toUser        User      @relation("TransfersReceived", fields: [toUserId], references: [id])
+
+  amount        Decimal   @db.Decimal(18, 2)
+  status        String    @default("COMPLETED")  // COMPLETED, REVERSED
+  description   String?
+
+  createdAt     DateTime  @default(now())
+
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([createdAt])
+}
+
+// Estatísticas por nível para visualização da matriz
+model LevelStats {
+  id              Int       @id @default(autoincrement())
+
+  levelId         Int       @unique
+  level           Level     @relation(fields: [levelId], references: [id])
+
+  // Estatísticas de ciclos
+  totalCycles     Int       @default(0)
+  cyclesToday     Int       @default(0)
+  avgCyclesPerDay Decimal   @default(0) @db.Decimal(10, 2)
+
+  // Tempo de espera (em minutos)
+  avgWaitTime     Int       @default(0)
+  minWaitTime     Int?
+  maxWaitTime     Int?
+
+  // Datas importantes
+  firstCycleAt    DateTime?  // Matriz mais antiga
+  lastCycleAt     DateTime?  // Último ciclo
+
+  updatedAt       DateTime   @updatedAt
+
+  @@index([levelId])
+}
+
+// Subscrições de push notification
+model PushSubscription {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  endpoint    String    // URL do push service
+  p256dh      String    // Chave pública VAPID
+  auth        String    // Token de autenticação
+  device      String?   // "Chrome Windows", "Safari iOS", etc.
+
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+}
+
+// Log de notificações enviadas
+model NotificationLog {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  channel     NotificationChannel
+  event       NotificationEvent
+  title       String
+  body        String
+  data        Json?     // Dados extras (levelId, amount, etc.)
+
+  status      NotificationStatus  @default(PENDING)
+  sentAt      DateTime?
+  clickedAt   DateTime?
+  errorMsg    String?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([event])
+  @@index([status])
+  @@index([createdAt])
+}

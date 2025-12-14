@@ -1,0 +1,3954 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7iATLAS - Pitch Deck | Investidores</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-card-hover: #1a1a25;
+            --gradient-start: #2F00FF;
+            --gradient-mid: #8B00FF;
+            --gradient-end: #FF00FF;
+            --green-aurora: #00FFA3;
+            --gold: #FFD700;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1rem 2rem;
+            background: rgba(10, 10, 15, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .logo img {
+            height: 45px;
+            width: auto;
+        }
+
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        /* Sections */
+        section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6rem 2rem;
+            position: relative;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: radial-gradient(ellipse at center, rgba(47, 0, 255, 0.15) 0%, transparent 70%);
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-logo {
+            width: 150px;
+            height: auto;
+            margin-bottom: 2rem;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            background: rgba(0, 255, 163, 0.1);
+            border: 1px solid rgba(0, 255, 163, 0.3);
+            border-radius: 50px;
+            color: var(--green-aurora);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .badge-blockchain {
+            background: rgba(139, 0, 255, 0.1);
+            border: 1px solid rgba(139, 0, 255, 0.3);
+            color: var(--gradient-mid);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .hero h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #a0a0b0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            line-height: 1.7;
+        }
+
+        .hero-highlight {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, rgba(47, 0, 255, 0.2), rgba(139, 0, 255, 0.2));
+            border: 1px solid rgba(139, 0, 255, 0.3);
+            border-radius: 12px;
+            margin-bottom: 3rem;
+        }
+
+        .hero-highlight p {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .hero-highlight span {
+            color: var(--green-aurora);
+            font-weight: 700;
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 4rem;
+            flex-wrap: wrap;
+            margin-top: 3rem;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--green-aurora);
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-stat-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Section Titles */
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-title span {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto 4rem;
+        }
+
+        /* Unique Value Proposition */
+        .unique {
+            background: linear-gradient(180deg, var(--bg-dark) 0%, #0d0d15 100%);
+        }
+
+        .unique-card {
+            background: var(--bg-card);
+            border: 2px solid var(--gradient-mid);
+            border-radius: 24px;
+            padding: 3rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .unique-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+        }
+
+        .unique-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: var(--gradient-mid);
+            margin-bottom: 2rem;
+        }
+
+        .unique-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .unique-feature {
+            padding: 1.5rem;
+            background: rgba(139, 0, 255, 0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(139, 0, 255, 0.1);
+        }
+
+        .unique-feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .unique-feature h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--green-aurora);
+        }
+
+        .unique-feature p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Problem Section */
+        .problem {
+            background: radial-gradient(ellipse at bottom, rgba(255, 50, 50, 0.05) 0%, transparent 60%);
+        }
+
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .problem-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .problem-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 0, 100, 0.3);
+            box-shadow: 0 20px 40px rgba(255, 0, 100, 0.1);
+        }
+
+        .problem-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            background: rgba(255, 0, 100, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .problem-card h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #ff6b6b;
+        }
+
+        .problem-card p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* Solution Section */
+        .solution {
+            background: radial-gradient(ellipse at bottom, rgba(0, 255, 163, 0.08) 0%, transparent 60%);
+        }
+
+        .solution-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .solution-text h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            color: var(--green-aurora);
+        }
+
+        .solution-text p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .solution-features {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .solution-feature {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            background: rgba(0, 255, 163, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 255, 163, 0.1);
+        }
+
+        .solution-feature-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(0, 255, 163, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--green-aurora);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .solution-feature span {
+            font-weight: 500;
+        }
+
+        .solution-visual {
+            position: relative;
+        }
+
+        .solution-diagram {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .solution-diagram::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+        }
+
+        .diagram-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .diagram-step {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .diagram-step-number {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .diagram-step-content h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .diagram-step-content p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .diagram-arrow {
+            width: 50px;
+            display: flex;
+            justify-content: center;
+            color: var(--gradient-mid);
+            font-size: 1.5rem;
+        }
+
+        /* Mutual Help Section */
+        .mutual-help {
+            background: linear-gradient(180deg, #0d0d15 0%, var(--bg-dark) 100%);
+        }
+
+        .mutual-help-main {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+        }
+
+        .mutual-help-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .mutual-help-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .mutual-help-header h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .mutual-help-header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .mutual-help-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .comparison-box {
+            padding: 2rem;
+            border-radius: 16px;
+        }
+
+        .comparison-box.wrong {
+            background: rgba(255, 100, 100, 0.05);
+            border: 1px solid rgba(255, 100, 100, 0.2);
+        }
+
+        .comparison-box.right {
+            background: rgba(0, 255, 163, 0.05);
+            border: 1px solid rgba(0, 255, 163, 0.2);
+        }
+
+        .comparison-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .comparison-box h4 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .comparison-box.wrong h4 {
+            color: #ff6b6b;
+        }
+
+        .comparison-box.right h4 {
+            color: var(--green-aurora);
+        }
+
+        .comparison-box ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .comparison-box ul li {
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .comparison-box.wrong ul li::before {
+            content: '✗';
+            position: absolute;
+            left: 0;
+            color: #ff6b6b;
+        }
+
+        .comparison-box.right ul li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--green-aurora);
+        }
+
+        .mutual-help-power {
+            background: var(--bg-card);
+            border: 2px solid var(--gradient-mid);
+            border-radius: 24px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .mutual-help-power h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--gradient-mid);
+            margin-bottom: 2rem;
+        }
+
+        .power-grid {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .power-item {
+            padding: 1.5rem 2rem;
+            background: rgba(139, 0, 255, 0.1);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .power-item.highlight {
+            background: linear-gradient(135deg, rgba(0, 255, 163, 0.2), rgba(139, 0, 255, 0.2));
+            border: 1px solid var(--green-aurora);
+        }
+
+        .power-number {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.3rem;
+        }
+
+        .power-item.highlight .power-number {
+            color: var(--green-aurora);
+        }
+
+        .power-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .power-arrow {
+            font-size: 2rem;
+            color: var(--gradient-mid);
+            font-weight: bold;
+        }
+
+        .power-explanation {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            line-height: 1.8;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .power-explanation strong {
+            color: var(--text-primary);
+        }
+
+        .highlight-text {
+            color: var(--green-aurora);
+            font-weight: 600;
+        }
+
+        .mutual-help-math {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .mutual-help-math h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+        }
+
+        .math-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .math-step {
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .math-step.featured {
+            background: linear-gradient(135deg, rgba(0, 255, 163, 0.15), rgba(0, 255, 163, 0.05));
+            border: 2px solid var(--green-aurora);
+        }
+
+        .math-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.3rem;
+        }
+
+        .math-step.featured .math-value {
+            color: var(--green-aurora);
+            font-size: 2rem;
+        }
+
+        .math-desc {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .math-arrow {
+            color: var(--gradient-mid);
+            font-size: 1.5rem;
+        }
+
+        .math-note {
+            padding: 1.5rem;
+            background: rgba(0, 255, 163, 0.05);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .math-note strong {
+            color: var(--green-aurora);
+        }
+
+        .mutual-help-why {
+            margin-bottom: 3rem;
+        }
+
+        .mutual-help-why h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .why-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .why-item {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .why-item:hover {
+            border-color: rgba(139, 0, 255, 0.3);
+            transform: translateY(-5px);
+        }
+
+        .why-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .why-item h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .why-item p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .mutual-help-quote {
+            text-align: center;
+            padding: 3rem;
+            background: linear-gradient(135deg, rgba(47, 0, 255, 0.1), rgba(139, 0, 255, 0.1));
+            border-radius: 24px;
+            border: 1px solid rgba(139, 0, 255, 0.2);
+        }
+
+        .mutual-help-quote blockquote {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-style: italic;
+        }
+
+        .mutual-help-quote p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        @media (max-width: 968px) {
+            .mutual-help-comparison {
+                grid-template-columns: 1fr;
+            }
+
+            .why-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .power-grid {
+                flex-direction: column;
+            }
+
+            .math-flow {
+                flex-direction: column;
+            }
+
+            .math-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .why-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .mutual-help-quote blockquote {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* ROI Section */
+        .roi {
+            background: linear-gradient(180deg, #0d0d15 0%, var(--bg-dark) 100%);
+        }
+
+        .roi-card {
+            background: var(--bg-card);
+            border: 2px solid var(--green-aurora);
+            border-radius: 24px;
+            padding: 3rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .roi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--green-aurora);
+        }
+
+        .roi-header {
+            margin-bottom: 3rem;
+        }
+
+        .roi-header h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--green-aurora);
+            margin-bottom: 0.5rem;
+        }
+
+        .roi-header p {
+            color: var(--text-secondary);
+        }
+
+        .roi-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+
+        .roi-box {
+            padding: 2rem 3rem;
+            background: rgba(0, 255, 163, 0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(0, 255, 163, 0.2);
+        }
+
+        .roi-box-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .roi-box-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--green-aurora);
+        }
+
+        .roi-arrow {
+            font-size: 2rem;
+            color: var(--gradient-mid);
+        }
+
+        .roi-multiplier {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
+            border-radius: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .roi-note {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            flex-wrap: wrap;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .roi-note-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .roi-note-icon {
+            color: var(--green-aurora);
+            font-size: 1.2rem;
+        }
+
+        .roi-note-item span {
+            color: var(--text-secondary);
+        }
+
+        /* Market Section */
+        .market {
+            background: radial-gradient(ellipse at center, rgba(47, 0, 255, 0.08) 0%, transparent 60%);
+        }
+
+        .market-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .market-stat-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .market-stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, var(--gradient-mid) 0%, transparent 70%);
+            opacity: 0.2;
+            filter: blur(30px);
+        }
+
+        .market-stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .market-stat-label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .market-growth {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 3rem;
+        }
+
+        .market-growth h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .growth-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 200px;
+            padding: 0 1rem;
+        }
+
+        .growth-bar {
+            width: 60px;
+            background: linear-gradient(180deg, var(--gradient-mid), var(--gradient-start));
+            border-radius: 10px 10px 0 0;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .growth-bar:hover {
+            filter: brightness(1.2);
+        }
+
+        .growth-bar-label {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .growth-bar-value {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--green-aurora);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Business Model Section */
+        .business {
+            background: radial-gradient(ellipse at top, rgba(255, 215, 0, 0.08) 0%, transparent 60%);
+        }
+
+        .business-model {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+        }
+
+        .revenue-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 24px;
+            padding: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .revenue-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gold), #ffaa00);
+        }
+
+        .revenue-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--gold);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .revenue-items {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .revenue-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: 12px;
+        }
+
+        .revenue-item-name {
+            font-weight: 500;
+        }
+
+        .revenue-item-value {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .revenue-total {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 215, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .revenue-total-label {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .revenue-total-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--green-aurora);
+        }
+
+        /* Jupiter Pool Section */
+        .jupiter {
+            background: linear-gradient(180deg, var(--bg-dark) 0%, #0d0d15 100%);
+        }
+
+        .jupiter-card {
+            background: var(--bg-card);
+            border: 2px solid var(--gold);
+            border-radius: 24px;
+            padding: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .jupiter-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gold), var(--green-aurora));
+        }
+
+        .jupiter-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .jupiter-header h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+
+        .jupiter-header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .jupiter-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .jupiter-feature {
+            padding: 2rem;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            text-align: center;
+        }
+
+        .jupiter-feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .jupiter-feature h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--gold);
+        }
+
+        .jupiter-feature p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* AI Section */
+        .ai {
+            background: radial-gradient(ellipse at center, rgba(0, 255, 163, 0.1) 0%, transparent 60%);
+        }
+
+        .ai-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(0, 255, 163, 0.3);
+            border-radius: 24px;
+            padding: 3rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .ai-content h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: var(--green-aurora);
+            margin-bottom: 1.5rem;
+        }
+
+        .ai-content p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .ai-benefits {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .ai-benefit {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(0, 255, 163, 0.05);
+            border-radius: 12px;
+        }
+
+        .ai-benefit-icon {
+            color: var(--green-aurora);
+            font-size: 1.2rem;
+        }
+
+        .ai-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-brain {
+            font-size: 8rem;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        .ai-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            color: var(--green-aurora);
+            margin-top: 1rem;
+        }
+
+        /* Impact Section */
+        .impact {
+            background: linear-gradient(180deg, #0d0d15 0%, var(--bg-dark) 100%);
+        }
+
+        .impact-stories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .impact-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 2.5rem;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .impact-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 255, 163, 0.3);
+        }
+
+        .impact-card-quote {
+            font-size: 3rem;
+            color: var(--gradient-mid);
+            opacity: 0.3;
+            position: absolute;
+            top: 1.5rem;
+            left: 2rem;
+        }
+
+        .impact-card p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            font-style: italic;
+            margin-bottom: 2rem;
+            padding-top: 2rem;
+        }
+
+        .impact-card-author {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .impact-card-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .impact-card-info h4 {
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .impact-card-info span {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .impact-numbers {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            margin-top: 4rem;
+            padding: 3rem;
+            background: var(--bg-card);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .impact-number {
+            text-align: center;
+        }
+
+        .impact-number-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--green-aurora);
+            margin-bottom: 0.5rem;
+        }
+
+        .impact-number-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Technology Section */
+        .technology {
+            background: radial-gradient(ellipse at center, rgba(47, 0, 255, 0.1) 0%, transparent 60%);
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .tech-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .tech-card:hover {
+            border-color: rgba(47, 0, 255, 0.3);
+            transform: translateY(-5px);
+        }
+
+        .tech-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(47, 0, 255, 0.2), rgba(139, 0, 255, 0.2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .tech-card h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+        }
+
+        .tech-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Investment Section */
+        .investment {
+            background: linear-gradient(180deg, #0d0d15 0%, var(--bg-dark) 100%);
+        }
+
+        .investment-single {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .investment-card {
+            background: var(--bg-card);
+            border: 2px solid var(--gold);
+            border-radius: 24px;
+            padding: 3rem;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .investment-card::before {
+            content: 'SÓCIO FUNDADOR';
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gold);
+            color: var(--bg-dark);
+            padding: 0.4rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .investment-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .investment-card .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .investment-card .amount {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            font-weight: 800;
+            text-align: center;
+            background: linear-gradient(135deg, var(--gold), #ffaa00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 2rem;
+        }
+
+        .investment-features {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .investment-feature {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.8rem 1rem;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: 10px;
+        }
+
+        .investment-feature-icon {
+            color: var(--green-aurora);
+            font-size: 1.2rem;
+        }
+
+        .investment-equity {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 255, 163, 0.1));
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .investment-equity-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .investment-equity-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .investment-note {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Projection Section */
+        .projection {
+            background: radial-gradient(ellipse at center, rgba(0, 255, 163, 0.08) 0%, transparent 60%);
+        }
+
+        .projection-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+        }
+
+        .projection-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(0, 255, 163, 0.2);
+            border-radius: 24px;
+            padding: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .projection-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--green-aurora), var(--gold));
+        }
+
+        .projection-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            color: var(--green-aurora);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .projection-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .projection-table th,
+        .projection-table td {
+            padding: 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .projection-table th {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .projection-table td {
+            color: var(--text-secondary);
+        }
+
+        .projection-table .highlight {
+            color: var(--green-aurora);
+            font-weight: 600;
+        }
+
+        .projection-table .payback-row {
+            background: rgba(0, 255, 163, 0.1);
+        }
+
+        .projection-table .payback-row td {
+            color: var(--green-aurora);
+            font-weight: 700;
+        }
+
+        .projection-summary {
+            background: var(--bg-card);
+            border: 2px solid var(--green-aurora);
+            border-radius: 24px;
+            padding: 3rem;
+            margin-top: 3rem;
+        }
+
+        .projection-summary-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .projection-summary-header h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--green-aurora);
+            margin-bottom: 0.5rem;
+        }
+
+        .projection-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+        }
+
+        .projection-summary-item {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(0, 255, 163, 0.05);
+            border-radius: 16px;
+        }
+
+        .projection-summary-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--green-aurora);
+            margin-bottom: 0.5rem;
+        }
+
+        .projection-summary-value.gold {
+            color: var(--gold);
+        }
+
+        .projection-summary-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .projection-source {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+
+        .projection-source h4 {
+            color: var(--gold);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .projection-source p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Scenario Tabs */
+        .scenario-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .scenario-tab {
+            padding: 1rem 2rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .scenario-tab:hover {
+            border-color: var(--gradient-mid);
+            color: var(--text-primary);
+        }
+
+        .scenario-tab.active {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
+            border-color: transparent;
+            color: white;
+        }
+
+        .scenario-content {
+            display: none;
+        }
+
+        .scenario-content.active {
+            display: block;
+        }
+
+        .scenario-header {
+            text-align: center;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+
+        .scenario-header.otimista {
+            background: linear-gradient(135deg, rgba(0, 255, 163, 0.1), rgba(0, 255, 163, 0.05));
+            border: 1px solid rgba(0, 255, 163, 0.3);
+        }
+
+        .scenario-header.conservador {
+            background: linear-gradient(135deg, rgba(139, 0, 255, 0.1), rgba(139, 0, 255, 0.05));
+            border: 1px solid rgba(139, 0, 255, 0.3);
+        }
+
+        .scenario-header.pessimista {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .scenario-header h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .scenario-header p {
+            color: var(--text-secondary);
+        }
+
+        /* Comparison Table */
+        .scenarios-comparison {
+            margin-top: 3rem;
+            padding: 2rem;
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .scenarios-comparison h3 {
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .comparison-table th {
+            background: rgba(139, 0, 255, 0.1);
+            color: var(--gradient-mid);
+            font-weight: 600;
+        }
+
+        .comparison-table .row-pessimista {
+            background: rgba(255, 215, 0, 0.05);
+        }
+
+        .comparison-table .row-conservador {
+            background: rgba(139, 0, 255, 0.05);
+        }
+
+        .comparison-table .row-otimista {
+            background: rgba(0, 255, 163, 0.1);
+        }
+
+        .comparison-table .row-otimista td {
+            color: var(--green-aurora);
+            font-weight: 600;
+        }
+
+        .comparison-note {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        @media (max-width: 968px) {
+            .projection-content {
+                grid-template-columns: 1fr;
+            }
+
+            .projection-summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .scenario-tabs {
+                gap: 0.5rem;
+            }
+
+            .scenario-tab {
+                padding: 0.8rem 1.2rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .projection-summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 0.5rem 0.3rem;
+                font-size: 0.75rem;
+            }
+
+            .scenario-tab {
+                padding: 0.6rem 1rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* CTA Section */
+        .cta {
+            background: linear-gradient(180deg, var(--bg-dark) 0%, #0a0a12 100%);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(139, 0, 255, 0.15) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 2rem;
+        }
+
+        .cta h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta h2 span {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .cta p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 3rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2.5rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(139, 0, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--gradient-mid);
+            background: rgba(139, 0, 255, 0.1);
+        }
+
+        .cta-contact {
+            margin-top: 4rem;
+            padding-top: 3rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cta-contact p {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .cta-contact a {
+            color: var(--gradient-mid);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.2rem;
+            display: block;
+        }
+
+        /* Footer */
+        footer {
+            padding: 3rem 2rem;
+            background: #050508;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        footer .logo {
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        footer p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* ========================================
+           RESPONSIVE - TABLET (max-width: 968px)
+           ======================================== */
+        @media (max-width: 968px) {
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .nav {
+                padding: 0.8rem 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .logo img {
+                height: 35px;
+            }
+
+            .logo-text {
+                font-size: 1.3rem;
+            }
+
+            /* Hero */
+            .hero-logo {
+                width: 100px;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1rem;
+                padding: 0 1rem;
+            }
+
+            .hero-highlight {
+                padding: 0.8rem 1.5rem;
+            }
+
+            .hero-highlight p {
+                font-size: 0.95rem;
+            }
+
+            .hero-stats {
+                gap: 2rem;
+            }
+
+            .hero-stat-value {
+                font-size: 2rem;
+            }
+
+            /* Section Titles */
+            .section-title {
+                font-size: 1.6rem;
+            }
+
+            .section-subtitle {
+                font-size: 1rem;
+                padding: 0 1rem;
+            }
+
+            /* Unique Section */
+            .unique-card {
+                padding: 2rem;
+            }
+
+            .unique-card h3 {
+                font-size: 1.4rem;
+            }
+
+            .unique-features {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1.5rem;
+            }
+
+            /* Mutual Help */
+            .mutual-help-main {
+                padding: 2rem;
+            }
+
+            .mutual-help-comparison {
+                grid-template-columns: 1fr;
+            }
+
+            .mutual-help-power {
+                padding: 2rem;
+            }
+
+            .power-grid {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .power-arrow {
+                transform: rotate(90deg);
+            }
+
+            .mutual-help-math {
+                padding: 2rem;
+            }
+
+            .math-flow {
+                flex-direction: column;
+            }
+
+            .math-arrow {
+                transform: rotate(90deg);
+            }
+
+            .why-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .mutual-help-quote {
+                padding: 2rem;
+            }
+
+            .mutual-help-quote blockquote {
+                font-size: 1.4rem;
+            }
+
+            /* ROI */
+            .roi-card {
+                padding: 2rem;
+            }
+
+            .roi-flow {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .roi-arrow {
+                transform: rotate(90deg);
+            }
+
+            .roi-box {
+                padding: 1.5rem 2rem;
+            }
+
+            .roi-box-value {
+                font-size: 2rem;
+            }
+
+            .roi-note {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            /* Problem */
+            .problem-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .problem-card {
+                padding: 1.5rem;
+            }
+
+            /* Solution */
+            .solution-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .solution-diagram {
+                padding: 2rem;
+            }
+
+            /* AI */
+            .ai-card {
+                grid-template-columns: 1fr;
+                padding: 2rem;
+            }
+
+            .ai-brain {
+                font-size: 5rem;
+            }
+
+            /* Jupiter */
+            .jupiter-card {
+                padding: 2rem;
+            }
+
+            .jupiter-features {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            /* Market */
+            .market-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .market-stat-value {
+                font-size: 2.2rem;
+            }
+
+            .market-growth {
+                padding: 2rem;
+            }
+
+            .growth-chart {
+                height: 150px;
+            }
+
+            .growth-bar {
+                width: 45px;
+            }
+
+            /* Business */
+            .business-model {
+                grid-template-columns: 1fr;
+            }
+
+            .revenue-card {
+                padding: 2rem;
+            }
+
+            /* Impact */
+            .impact-stories {
+                grid-template-columns: 1fr;
+            }
+
+            .impact-numbers {
+                grid-template-columns: repeat(2, 1fr);
+                padding: 2rem;
+            }
+
+            .impact-number-value {
+                font-size: 2rem;
+            }
+
+            /* Tech */
+            .tech-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tech-card {
+                padding: 1.5rem;
+            }
+
+            /* Investment */
+            .investment-card {
+                padding: 2rem;
+            }
+
+            .investment-card .amount {
+                font-size: 3rem;
+            }
+
+            /* Projection */
+            .projection-content {
+                grid-template-columns: 1fr;
+            }
+
+            .projection-card {
+                padding: 1.5rem;
+            }
+
+            .projection-table th,
+            .projection-table td {
+                padding: 0.6rem 0.4rem;
+                font-size: 0.85rem;
+            }
+
+            .projection-summary {
+                padding: 2rem;
+            }
+
+            .projection-summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .projection-summary-value {
+                font-size: 1.6rem;
+            }
+
+            /* CTA */
+            .cta h2 {
+                font-size: 1.8rem;
+            }
+
+            .cta-logo {
+                width: 80px;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        /* ========================================
+           RESPONSIVE - MOBILE (max-width: 600px)
+           ======================================== */
+        @media (max-width: 600px) {
+            section {
+                padding: 3rem 1rem;
+                min-height: auto;
+            }
+
+            .nav {
+                padding: 0.6rem 0.8rem;
+            }
+
+            .logo img {
+                height: 30px;
+            }
+
+            .logo-text {
+                font-size: 1.1rem;
+            }
+
+            /* Hero */
+            .hero-logo {
+                width: 80px;
+            }
+
+            .hero h1 {
+                font-size: 1.5rem;
+                line-height: 1.3;
+            }
+
+            .badge {
+                font-size: 0.7rem;
+                padding: 0.4rem 1rem;
+            }
+
+            .hero-subtitle {
+                font-size: 0.9rem;
+            }
+
+            .hero-highlight {
+                padding: 0.6rem 1rem;
+                margin-bottom: 2rem;
+            }
+
+            .hero-highlight p {
+                font-size: 0.85rem;
+            }
+
+            .hero-stats {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .hero-stat-value {
+                font-size: 1.8rem;
+            }
+
+            .hero-stat-label {
+                font-size: 0.75rem;
+            }
+
+            /* Section Titles */
+            .section-title {
+                font-size: 1.4rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .section-subtitle {
+                font-size: 0.9rem;
+                margin-bottom: 2rem;
+            }
+
+            /* Unique Section */
+            .unique-card {
+                padding: 1.5rem;
+            }
+
+            .unique-card h3 {
+                font-size: 1.2rem;
+            }
+
+            .unique-features {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .unique-feature {
+                padding: 1rem;
+            }
+
+            .unique-feature-icon {
+                font-size: 2rem;
+            }
+
+            .unique-feature h4 {
+                font-size: 1rem;
+            }
+
+            .unique-feature p {
+                font-size: 0.85rem;
+            }
+
+            /* Mutual Help */
+            .mutual-help-main {
+                padding: 1.5rem;
+            }
+
+            .mutual-help-icon {
+                font-size: 3rem;
+            }
+
+            .mutual-help-header h3 {
+                font-size: 1.3rem;
+            }
+
+            .comparison-box {
+                padding: 1.5rem;
+            }
+
+            .comparison-box h4 {
+                font-size: 1rem;
+            }
+
+            .comparison-box ul li {
+                font-size: 0.85rem;
+            }
+
+            .mutual-help-power {
+                padding: 1.5rem;
+            }
+
+            .mutual-help-power h3 {
+                font-size: 1.2rem;
+            }
+
+            .power-item {
+                padding: 1rem 1.5rem;
+            }
+
+            .power-number {
+                font-size: 1.5rem;
+            }
+
+            .power-label {
+                font-size: 0.75rem;
+            }
+
+            .power-explanation {
+                font-size: 0.95rem;
+            }
+
+            .mutual-help-math {
+                padding: 1.5rem;
+            }
+
+            .mutual-help-math h3 {
+                font-size: 1.2rem;
+            }
+
+            .math-step {
+                padding: 1rem;
+                width: 100%;
+            }
+
+            .math-value {
+                font-size: 1.2rem;
+            }
+
+            .math-step.featured .math-value {
+                font-size: 1.5rem;
+            }
+
+            .math-note {
+                font-size: 0.9rem;
+                padding: 1rem;
+            }
+
+            .why-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .why-item {
+                padding: 1.5rem;
+            }
+
+            .why-icon {
+                font-size: 2rem;
+            }
+
+            .why-item h4 {
+                font-size: 1rem;
+            }
+
+            .why-item p {
+                font-size: 0.85rem;
+            }
+
+            .mutual-help-quote {
+                padding: 1.5rem;
+            }
+
+            .mutual-help-quote blockquote {
+                font-size: 1.1rem;
+            }
+
+            /* ROI */
+            .roi-card {
+                padding: 1.5rem;
+            }
+
+            .roi-header h3 {
+                font-size: 1.2rem;
+            }
+
+            .roi-box {
+                padding: 1rem 1.5rem;
+                width: 100%;
+            }
+
+            .roi-box-value {
+                font-size: 1.8rem;
+            }
+
+            .roi-multiplier {
+                font-size: 1.2rem;
+                padding: 0.8rem 1.5rem;
+            }
+
+            .roi-note-item {
+                font-size: 0.85rem;
+            }
+
+            /* Problem */
+            .problem-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .problem-card {
+                padding: 1.5rem;
+            }
+
+            .problem-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+
+            .problem-card h3 {
+                font-size: 1.1rem;
+            }
+
+            .problem-card p {
+                font-size: 0.9rem;
+            }
+
+            /* Solution */
+            .solution-text h3 {
+                font-size: 1.4rem;
+            }
+
+            .solution-text p {
+                font-size: 0.9rem;
+            }
+
+            .solution-feature {
+                padding: 0.8rem 1rem;
+            }
+
+            .solution-feature-icon {
+                width: 35px;
+                height: 35px;
+                font-size: 1rem;
+            }
+
+            .solution-feature span {
+                font-size: 0.9rem;
+            }
+
+            .solution-diagram {
+                padding: 1.5rem;
+            }
+
+            .diagram-step-number {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .diagram-step-content h4 {
+                font-size: 1rem;
+            }
+
+            .diagram-step-content p {
+                font-size: 0.8rem;
+            }
+
+            /* AI */
+            .ai-card {
+                padding: 1.5rem;
+            }
+
+            .ai-content h3 {
+                font-size: 1.3rem;
+            }
+
+            .ai-content p {
+                font-size: 0.9rem;
+            }
+
+            .ai-benefit {
+                padding: 0.8rem;
+            }
+
+            .ai-brain {
+                font-size: 4rem;
+            }
+
+            .ai-label {
+                font-size: 1rem;
+            }
+
+            /* Jupiter */
+            .jupiter-card {
+                padding: 1.5rem;
+            }
+
+            .jupiter-header h3 {
+                font-size: 1.4rem;
+            }
+
+            .jupiter-header p {
+                font-size: 0.9rem;
+            }
+
+            .jupiter-features {
+                grid-template-columns: 1fr;
+            }
+
+            .jupiter-feature {
+                padding: 1.5rem;
+            }
+
+            .jupiter-feature-icon {
+                font-size: 2rem;
+            }
+
+            .jupiter-feature h4 {
+                font-size: 1rem;
+            }
+
+            .jupiter-feature p {
+                font-size: 0.85rem;
+            }
+
+            /* Market */
+            .market-stats {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .market-stat-card {
+                padding: 1.5rem;
+            }
+
+            .market-stat-value {
+                font-size: 2rem;
+            }
+
+            .market-stat-label {
+                font-size: 0.85rem;
+            }
+
+            .market-growth {
+                padding: 1.5rem;
+            }
+
+            .market-growth h3 {
+                font-size: 1.2rem;
+            }
+
+            .growth-chart {
+                flex-wrap: wrap;
+                height: auto;
+                gap: 1.5rem;
+                justify-content: center;
+            }
+
+            .growth-bar {
+                width: 40px;
+            }
+
+            .growth-bar-label {
+                font-size: 0.7rem;
+            }
+
+            .growth-bar-value {
+                font-size: 0.75rem;
+            }
+
+            /* Business */
+            .revenue-card {
+                padding: 1.5rem;
+            }
+
+            .revenue-card h3 {
+                font-size: 1.2rem;
+            }
+
+            .revenue-item {
+                padding: 0.8rem 1rem;
+                flex-direction: column;
+                text-align: center;
+                gap: 0.3rem;
+            }
+
+            .revenue-item-name {
+                font-size: 0.9rem;
+            }
+
+            .revenue-item-value {
+                font-size: 1rem;
+            }
+
+            .revenue-total {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.5rem;
+            }
+
+            .revenue-total-label {
+                font-size: 1rem;
+            }
+
+            .revenue-total-value {
+                font-size: 1.5rem;
+            }
+
+            /* Impact */
+            .impact-card {
+                padding: 1.5rem;
+            }
+
+            .impact-card p {
+                font-size: 0.9rem;
+            }
+
+            .impact-card-avatar {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .impact-card-info h4 {
+                font-size: 0.95rem;
+            }
+
+            .impact-numbers {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+                padding: 1.5rem;
+            }
+
+            .impact-number {
+                padding: 0.5rem;
+            }
+
+            .impact-number-value {
+                font-size: 1.5rem;
+            }
+
+            .impact-number-label {
+                font-size: 0.75rem;
+            }
+
+            /* Tech */
+            .tech-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .tech-card {
+                padding: 1.5rem;
+            }
+
+            .tech-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .tech-card h3 {
+                font-size: 1rem;
+            }
+
+            .tech-card p {
+                font-size: 0.85rem;
+            }
+
+            /* Investment */
+            .investment-card {
+                padding: 1.5rem;
+                padding-top: 2rem;
+            }
+
+            .investment-card::before {
+                font-size: 0.7rem;
+                padding: 0.3rem 1rem;
+            }
+
+            .investment-card h3 {
+                font-size: 1.2rem;
+            }
+
+            .investment-card .amount {
+                font-size: 2.5rem;
+            }
+
+            .investment-feature {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.9rem;
+            }
+
+            .investment-equity {
+                padding: 1rem;
+            }
+
+            .investment-equity-value {
+                font-size: 1.5rem;
+            }
+
+            .investment-note {
+                font-size: 0.8rem;
+            }
+
+            /* Projection */
+            .projection-card {
+                padding: 1rem;
+            }
+
+            .projection-card h3 {
+                font-size: 1.1rem;
+                margin-bottom: 1rem;
+            }
+
+            .projection-table {
+                font-size: 0.75rem;
+            }
+
+            .projection-table th,
+            .projection-table td {
+                padding: 0.5rem 0.3rem;
+            }
+
+            .projection-table th {
+                font-size: 0.65rem;
+            }
+
+            .projection-summary {
+                padding: 1.5rem;
+            }
+
+            .projection-summary-header h3 {
+                font-size: 1.2rem;
+            }
+
+            .projection-summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .projection-summary-item {
+                padding: 1rem;
+            }
+
+            .projection-summary-value {
+                font-size: 1.3rem;
+            }
+
+            .projection-summary-label {
+                font-size: 0.75rem;
+            }
+
+            .projection-source {
+                padding: 1rem;
+            }
+
+            .projection-source h4 {
+                font-size: 0.9rem;
+            }
+
+            .projection-source p {
+                font-size: 0.8rem;
+            }
+
+            /* CTA */
+            .cta-logo {
+                width: 60px;
+            }
+
+            .cta h2 {
+                font-size: 1.4rem;
+            }
+
+            .cta p {
+                font-size: 0.9rem;
+            }
+
+            .cta-contact a {
+                font-size: 1rem;
+            }
+
+            /* Footer */
+            footer {
+                padding: 2rem 1rem;
+            }
+
+            footer .logo img {
+                height: 30px;
+            }
+
+            footer p {
+                font-size: 0.75rem;
+            }
+        }
+
+        /* ========================================
+           RESPONSIVE - SMALL MOBILE (max-width: 380px)
+           ======================================== */
+        @media (max-width: 380px) {
+            .hero h1 {
+                font-size: 1.3rem;
+            }
+
+            .hero-stat-value {
+                font-size: 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.2rem;
+            }
+
+            .projection-table th,
+            .projection-table td {
+                padding: 0.4rem 0.2rem;
+                font-size: 0.7rem;
+            }
+
+            .impact-numbers {
+                grid-template-columns: 1fr;
+            }
+
+            .projection-summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .investment-card .amount {
+                font-size: 2rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        /* Scroll animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <div class="logo">
+                <img src="logo.png" alt="7iATLAS">
+            </div>
+            <div class="nav-links">
+                <a href="#unico">Diferencial</a>
+                <a href="#solucao">Solução</a>
+                <a href="#roi">ROI</a>
+                <a href="#tecnologia">Tecnologia</a>
+                <a href="#investimento">Investir</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="inicio">
+        <div class="container">
+            <div class="hero-content">
+                <img src="logo.png" alt="7iATLAS" class="hero-logo">
+                <div class="badge badge-blockchain">⛓️ 100% Descentralizado em Blockchain</div>
+                <h1>O Primeiro Sistema de<br><span>Ajuda Mútua Descentralizada</span></h1>
+                <p class="hero-subtitle">
+                    O único sistema de ajuda comunitária totalmente em blockchain, sem custódia,
+                    operado por contratos inteligentes com regras imutáveis e transparentes.
+                </p>
+                <div class="hero-highlight">
+                    <p>Entrada única de <span>$10</span> → Potencial de até <span>$18.414</span> ao completar Nível 10</p>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">1.841x</div>
+                        <div class="hero-stat-label">ROI Máximo</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">100%</div>
+                        <div class="hero-stat-label">Transparente</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">0</div>
+                        <div class="hero-stat-label">Indicações Obrigatórias</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Unique Value Proposition -->
+    <section class="unique" id="unico">
+        <div class="container">
+            <h2 class="section-title">O Que Nos Torna <span>Únicos</span></h2>
+            <p class="section-subtitle">
+                O primeiro e único sistema de ajuda mútua completamente descentralizado do mundo
+            </p>
+            <div class="unique-card fade-in">
+                <h3>🏆 Pioneiros em Descentralização Total</h3>
+                <div class="unique-features">
+                    <div class="unique-feature">
+                        <div class="unique-feature-icon">⛓️</div>
+                        <h4>100% Blockchain</h4>
+                        <p>Todas as transações e regras executadas diretamente na Binance Smart Chain. Sem servidores centralizados.</p>
+                    </div>
+                    <div class="unique-feature">
+                        <div class="unique-feature-icon">🔐</div>
+                        <h4>Sem Custódia</h4>
+                        <p>Seus fundos nunca passam por nós. O contrato inteligente gerencia tudo automaticamente.</p>
+                    </div>
+                    <div class="unique-feature">
+                        <div class="unique-feature-icon">📜</div>
+                        <h4>Regras Imutáveis</h4>
+                        <p>Smart contract auditado com regras gravadas permanentemente. Ninguém pode alterar.</p>
+                    </div>
+                    <div class="unique-feature">
+                        <div class="unique-feature-icon">👁️</div>
+                        <h4>Transparência Total</h4>
+                        <p>Qualquer pessoa pode verificar todas as transações, filas e distribuições na blockchain.</p>
+                    </div>
+                    <div class="unique-feature">
+                        <div class="unique-feature-icon">🤖</div>
+                        <h4>Autonomia Total</h4>
+                        <p>O sistema opera 24/7 sem intervenção humana. As regras estabelecidas são executadas automaticamente.</p>
+                    </div>
+                    <div class="unique-feature">
+                        <div class="unique-feature-icon">💎</div>
+                        <h4>Apenas Crypto</h4>
+                        <p>Opera exclusivamente com USDT (BEP-20). Sem bancos, sem intermediários, sem fronteiras.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mutual Help Concept Section -->
+    <section class="mutual-help" id="conceito">
+        <div class="container">
+            <h2 class="section-title">O Poder da <span>Ajuda Mútua</span></h2>
+            <p class="section-subtitle">
+                Não é pirâmide. É colaboração voluntária que transforma vidas.
+            </p>
+
+            <div class="mutual-help-main fade-in">
+                <div class="mutual-help-header">
+                    <div class="mutual-help-icon">🤝</div>
+                    <h3>Sistema de Doações Voluntárias</h3>
+                    <p>Pessoas ajudando pessoas. Simples assim.</p>
+                </div>
+
+                <div class="mutual-help-comparison">
+                    <div class="comparison-box wrong">
+                        <div class="comparison-icon">❌</div>
+                        <h4>O que NÃO somos</h4>
+                        <ul>
+                            <li>Pirâmide financeira</li>
+                            <li>Esquema Ponzi</li>
+                            <li>Investimento de alto risco</li>
+                            <li>Promessa de enriquecimento rápido</li>
+                            <li>Sistema que depende de recrutamento infinito</li>
+                        </ul>
+                    </div>
+                    <div class="comparison-box right">
+                        <div class="comparison-icon">✅</div>
+                        <h4>O que SOMOS</h4>
+                        <ul>
+                            <li>Comunidade de ajuda mútua</li>
+                            <li>Doações voluntárias entre membros</li>
+                            <li>Entrada acessível ($10)</li>
+                            <li>Risco baixo e controlado</li>
+                            <li>Sistema sustentável com Jupiter Pool</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mutual-help-power fade-in">
+                <h3>💡 O Segredo: Poder do Volume</h3>
+                <div class="power-grid">
+                    <div class="power-item">
+                        <div class="power-number">$10</div>
+                        <div class="power-label">Você contribui</div>
+                    </div>
+                    <div class="power-arrow">×</div>
+                    <div class="power-item">
+                        <div class="power-number">1.000</div>
+                        <div class="power-label">Pessoas na comunidade</div>
+                    </div>
+                    <div class="power-arrow">=</div>
+                    <div class="power-item highlight">
+                        <div class="power-number">$10.000</div>
+                        <div class="power-label">Poder coletivo</div>
+                    </div>
+                </div>
+                <p class="power-explanation">
+                    Sozinho, $10 não muda sua vida. Mas quando <strong>milhares de pessoas</strong> contribuem
+                    pequenas quantias, o <strong>poder coletivo</strong> permite que cada participante
+                    receba centenas ou milhares de dólares em retorno.
+                    <span class="highlight-text">Isso só é possível através da ajuda comunitária.</span>
+                </p>
+            </div>
+
+            <div class="mutual-help-math fade-in">
+                <h3>📊 A Matemática da Solidariedade</h3>
+                <div class="math-flow">
+                    <div class="math-step">
+                        <div class="math-value">$10</div>
+                        <div class="math-desc">Sua contribuição única</div>
+                    </div>
+                    <div class="math-arrow">→</div>
+                    <div class="math-step">
+                        <div class="math-value">7 pessoas</div>
+                        <div class="math-desc">Ajudam você por nível</div>
+                    </div>
+                    <div class="math-arrow">→</div>
+                    <div class="math-step">
+                        <div class="math-value">10 níveis</div>
+                        <div class="math-desc">Progressão natural</div>
+                    </div>
+                    <div class="math-arrow">→</div>
+                    <div class="math-step featured">
+                        <div class="math-value">$18.414</div>
+                        <div class="math-desc">Potencial de retorno</div>
+                    </div>
+                </div>
+                <div class="math-note">
+                    <strong>1.841x de retorno</strong> - impossível em qualquer investimento tradicional,
+                    mas natural em um sistema onde <strong>a comunidade se ajuda mutuamente</strong>.
+                </div>
+            </div>
+
+            <div class="mutual-help-why fade-in">
+                <h3>🌍 Por que Funciona?</h3>
+                <div class="why-grid">
+                    <div class="why-item">
+                        <div class="why-icon">💰</div>
+                        <h4>Baixo Risco</h4>
+                        <p>Com apenas $10, você participa sem comprometer suas finanças. É o preço de um almoço.</p>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">👥</div>
+                        <h4>Alto Volume</h4>
+                        <p>Milhares de pequenas contribuições criam um fundo poderoso que beneficia todos.</p>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">🔄</div>
+                        <h4>Ciclo Virtuoso</h4>
+                        <p>Quem recebe ajuda, ajuda outros. O sistema se retroalimenta positivamente.</p>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">🛡️</div>
+                        <h4>Proteção Coletiva</h4>
+                        <p>Jupiter Pool garante liquidez mesmo em momentos de baixa. Ninguém fica para trás.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mutual-help-quote fade-in">
+                <blockquote>
+                    "Nenhum de nós é tão forte quanto todos nós juntos."
+                </blockquote>
+                <p>O 7iATLAS transforma este princípio em realidade através da tecnologia blockchain.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ROI Section -->
+    <section class="roi" id="roi">
+        <div class="container">
+            <h2 class="section-title">Retorno do <span>Usuário</span></h2>
+            <p class="section-subtitle">
+                Sem necessidade de indicar ninguém. Indicações potencializam os ganhos.
+            </p>
+            <div class="roi-card fade-in">
+                <div class="roi-header">
+                    <h3>💰 Jornada do Usuário</h3>
+                    <p>Do Nível 1 ao Nível 10 - Entrada única, ganhos progressivos</p>
+                </div>
+                <div class="roi-flow">
+                    <div class="roi-box">
+                        <div class="roi-box-label">Entrada Única</div>
+                        <div class="roi-box-value">$10</div>
+                    </div>
+                    <div class="roi-arrow">→</div>
+                    <div class="roi-multiplier">10 Níveis</div>
+                    <div class="roi-arrow">→</div>
+                    <div class="roi-box">
+                        <div class="roi-box-label">Ganho Potencial</div>
+                        <div class="roi-box-value">$18.414</div>
+                    </div>
+                </div>
+                <div class="roi-note">
+                    <div class="roi-note-item">
+                        <span class="roi-note-icon">✓</span>
+                        <span>Não precisa indicar ninguém</span>
+                    </div>
+                    <div class="roi-note-item">
+                        <span class="roi-note-icon">✓</span>
+                        <span>Indicações aumentam os ganhos</span>
+                    </div>
+                    <div class="roi-note-item">
+                        <span class="roi-note-icon">✓</span>
+                        <span>Reentrada automática em cada nível</span>
+                    </div>
+                    <div class="roi-note-item">
+                        <span class="roi-note-icon">✓</span>
+                        <span>Progressão por mérito (Score)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section class="problem" id="problema">
+        <div class="container">
+            <h2 class="section-title">O <span>Problema</span></h2>
+            <p class="section-subtitle">
+                Sistemas tradicionais de ajuda mútua falham por centralização e falta de transparência
+            </p>
+            <div class="problem-grid">
+                <div class="problem-card fade-in">
+                    <div class="problem-icon">🏦</div>
+                    <h3>Custódia Centralizada</h3>
+                    <p>Seu dinheiro fica nas mãos de terceiros. Risco de bloqueio, fraude ou desaparecimento dos fundos.</p>
+                </div>
+                <div class="problem-card fade-in">
+                    <div class="problem-icon">🔒</div>
+                    <h3>Regras Alteráveis</h3>
+                    <p>Administradores podem mudar regras a qualquer momento, prejudicando participantes.</p>
+                </div>
+                <div class="problem-card fade-in">
+                    <div class="problem-icon">🙈</div>
+                    <h3>Falta de Transparência</h3>
+                    <p>Impossível verificar se as filas são justas ou se os fundos estão realmente disponíveis.</p>
+                </div>
+                <div class="problem-card fade-in">
+                    <div class="problem-icon">⚠️</div>
+                    <h3>Risco de Travamento</h3>
+                    <p>Sistemas sem mecanismos de proteção param quando o fluxo diminui, prejudicando todos.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section class="solution" id="solucao">
+        <div class="container">
+            <h2 class="section-title">A <span>Solução</span> 7iATLAS</h2>
+            <p class="section-subtitle">
+                Tecnologia blockchain eliminando todos os problemas dos sistemas tradicionais
+            </p>
+            <div class="solution-content">
+                <div class="solution-text fade-in">
+                    <h3>Contrato Inteligente Autônomo</h3>
+                    <p>
+                        O 7iATLAS opera através de um smart contract na Binance Smart Chain que executa
+                        todas as regras automaticamente. Sem intervenção humana, sem possibilidade de
+                        manipulação, sem custódia de fundos.
+                    </p>
+                    <div class="solution-features">
+                        <div class="solution-feature">
+                            <div class="solution-feature-icon">✓</div>
+                            <span>Código auditado e público na blockchain</span>
+                        </div>
+                        <div class="solution-feature">
+                            <div class="solution-feature-icon">✓</div>
+                            <span>Regras imutáveis gravadas no contrato</span>
+                        </div>
+                        <div class="solution-feature">
+                            <div class="solution-feature-icon">✓</div>
+                            <span>Transações verificáveis por qualquer pessoa</span>
+                        </div>
+                        <div class="solution-feature">
+                            <div class="solution-feature-icon">✓</div>
+                            <span>Sistema de Score justo e transparente</span>
+                        </div>
+                        <div class="solution-feature">
+                            <div class="solution-feature-icon">✓</div>
+                            <span>Jupiter Pool visível para todos usuários</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="solution-visual fade-in">
+                    <div class="solution-diagram">
+                        <div class="diagram-flow">
+                            <div class="diagram-step">
+                                <div class="diagram-step-number">1</div>
+                                <div class="diagram-step-content">
+                                    <h4>Conecta Wallet</h4>
+                                    <p>MetaMask ou qualquer wallet Web3</p>
+                                </div>
+                            </div>
+                            <div class="diagram-arrow">↓</div>
+                            <div class="diagram-step">
+                                <div class="diagram-step-number">2</div>
+                                <div class="diagram-step-content">
+                                    <h4>Envia $10 USDT</h4>
+                                    <p>Direto para o contrato inteligente</p>
+                                </div>
+                            </div>
+                            <div class="diagram-arrow">↓</div>
+                            <div class="diagram-step">
+                                <div class="diagram-step-number">3</div>
+                                <div class="diagram-step-content">
+                                    <h4>Entra na Matriz</h4>
+                                    <p>IA organiza por Score automaticamente</p>
+                                </div>
+                            </div>
+                            <div class="diagram-arrow">↓</div>
+                            <div class="diagram-step">
+                                <div class="diagram-step-number">4</div>
+                                <div class="diagram-step-content">
+                                    <h4>Recebe Ganhos</h4>
+                                    <p>Direto na sua wallet, sem intermediários</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Section -->
+    <section class="ai" id="ia">
+        <div class="container">
+            <h2 class="section-title">Inteligência <span>Artificial</span></h2>
+            <p class="section-subtitle">
+                Sistema à prova de travamentos com IA controlando todas as matrizes
+            </p>
+            <div class="ai-card fade-in">
+                <div class="ai-content">
+                    <h3>🧠 IA que Garante Funcionamento</h3>
+                    <p>
+                        Nossa Inteligência Artificial monitora e controla todas as matrizes em tempo real,
+                        garantindo que o sistema nunca trave. Ela analisa padrões, prevê gargalos e
+                        aciona automaticamente os mecanismos de proteção quando necessário.
+                    </p>
+                    <div class="ai-benefits">
+                        <div class="ai-benefit">
+                            <span class="ai-benefit-icon">✓</span>
+                            <span>Monitora todas as filas 24/7</span>
+                        </div>
+                        <div class="ai-benefit">
+                            <span class="ai-benefit-icon">✓</span>
+                            <span>Prevê e previne travamentos</span>
+                        </div>
+                        <div class="ai-benefit">
+                            <span class="ai-benefit-icon">✓</span>
+                            <span>Otimiza distribuição automática</span>
+                        </div>
+                        <div class="ai-benefit">
+                            <span class="ai-benefit-icon">✓</span>
+                            <span>Aciona Jupiter Pool quando necessário</span>
+                        </div>
+                        <div class="ai-benefit">
+                            <span class="ai-benefit-icon">✓</span>
+                            <span>Zero intervenção humana necessária</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-visual">
+                    <div class="ai-brain">🧠</div>
+                    <div class="ai-label">IA 7iATLAS</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Jupiter Pool Section -->
+    <section class="jupiter" id="jupiter">
+        <div class="container">
+            <h2 class="section-title">Jupiter <span>Pool</span></h2>
+            <p class="section-subtitle">
+                Fundo de liquidez transparente que garante sustentabilidade perpétua
+            </p>
+            <div class="jupiter-card fade-in">
+                <div class="jupiter-header">
+                    <h3>🪐 Proteção Comunitária</h3>
+                    <p>10% de cada ciclo alimenta um fundo visível por todos, garantindo que o sistema nunca pare</p>
+                </div>
+                <div class="jupiter-features">
+                    <div class="jupiter-feature">
+                        <div class="jupiter-feature-icon">👁️</div>
+                        <h4>100% Transparente</h4>
+                        <p>Qualquer usuário pode ver o saldo do Jupiter Pool em tempo real no dashboard</p>
+                    </div>
+                    <div class="jupiter-feature">
+                        <div class="jupiter-feature-icon">🔄</div>
+                        <h4>Liquidez Garantida</h4>
+                        <p>Quando necessário, injeta automaticamente recursos para manter as filas funcionando</p>
+                    </div>
+                    <div class="jupiter-feature">
+                        <div class="jupiter-feature-icon">📈</div>
+                        <h4>Sustentabilidade</h4>
+                        <p>Acumula em momentos de alta, protege em momentos de baixa. Sistema 100% sustentável</p>
+                    </div>
+                    <div class="jupiter-feature">
+                        <div class="jupiter-feature-icon">⚡</div>
+                        <h4>Ação Inteligente</h4>
+                        <p>IA decide quando e onde usar o fundo para maximizar benefício de todos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Market Section -->
+    <section class="market" id="mercado">
+        <div class="container">
+            <h2 class="section-title">Oportunidade de <span>Mercado</span></h2>
+            <p class="section-subtitle">
+                Um mercado trilionário aguardando uma solução descentralizada confiável
+            </p>
+            <div class="market-stats">
+                <div class="market-stat-card fade-in">
+                    <div class="market-stat-value">$2.3T</div>
+                    <div class="market-stat-label">Economia Colaborativa Global</div>
+                </div>
+                <div class="market-stat-card fade-in">
+                    <div class="market-stat-value">4.2B</div>
+                    <div class="market-stat-label">Pessoas com Smartphone</div>
+                </div>
+                <div class="market-stat-card fade-in">
+                    <div class="market-stat-value">$180B</div>
+                    <div class="market-stat-label">Mercado Latam 2025</div>
+                </div>
+                <div class="market-stat-card fade-in">
+                    <div class="market-stat-value">420M</div>
+                    <div class="market-stat-label">Usuários de Crypto</div>
+                </div>
+            </div>
+            <div class="market-growth fade-in">
+                <h3>Projeção de Crescimento</h3>
+                <div class="growth-chart">
+                    <div class="growth-bar" style="height: 40px;">
+                        <span class="growth-bar-value">10K</span>
+                        <span class="growth-bar-label">Mês 1</span>
+                    </div>
+                    <div class="growth-bar" style="height: 70px;">
+                        <span class="growth-bar-value">35K</span>
+                        <span class="growth-bar-label">Mês 3</span>
+                    </div>
+                    <div class="growth-bar" style="height: 110px;">
+                        <span class="growth-bar-value">100K</span>
+                        <span class="growth-bar-label">Mês 6</span>
+                    </div>
+                    <div class="growth-bar" style="height: 160px;">
+                        <span class="growth-bar-value">350K</span>
+                        <span class="growth-bar-label">Ano 1</span>
+                    </div>
+                    <div class="growth-bar" style="height: 200px;">
+                        <span class="growth-bar-value">1M+</span>
+                        <span class="growth-bar-label">Ano 2</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Business Model Section -->
+    <section class="business" id="modelo">
+        <div class="container">
+            <h2 class="section-title">Modelo de <span>Negócio</span></h2>
+            <p class="section-subtitle">
+                Lucratividade sustentável com impacto social positivo
+            </p>
+            <div class="business-model">
+                <div class="revenue-card fade-in">
+                    <h3>💰 Fonte de Receita</h3>
+                    <div class="revenue-items">
+                        <div class="revenue-item" style="background: rgba(0, 255, 163, 0.1); border: 1px solid rgba(0, 255, 163, 0.2);">
+                            <span class="revenue-item-name" style="color: var(--green-aurora); font-weight: 600;">Participação nos Ciclos</span>
+                            <span class="revenue-item-value" style="color: var(--green-aurora); font-size: 1.5rem;">40%</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 12px;">
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                            A cada ciclo na Posição 5 da matriz, <strong style="color: var(--gold);">40% do valor</strong> é destinado ao lucro do sistema. Fonte única, transparente e previsível.
+                        </p>
+                    </div>
+                    <div class="revenue-total">
+                        <span class="revenue-total-label">Sua Participação</span>
+                        <span class="revenue-total-value">2%</span>
+                    </div>
+                </div>
+                <div class="revenue-card fade-in">
+                    <h3>📊 Lucro do Sistema (40%)</h3>
+                    <div class="revenue-items">
+                        <div class="revenue-item">
+                            <span class="revenue-item-name">10.000 usuários</span>
+                            <span class="revenue-item-value">$60K/mês</span>
+                        </div>
+                        <div class="revenue-item">
+                            <span class="revenue-item-name">50.000 usuários</span>
+                            <span class="revenue-item-value">$300K/mês</span>
+                        </div>
+                        <div class="revenue-item">
+                            <span class="revenue-item-name">100.000 usuários</span>
+                            <span class="revenue-item-value">$600K/mês</span>
+                        </div>
+                        <div class="revenue-item">
+                            <span class="revenue-item-name">500.000 usuários</span>
+                            <span class="revenue-item-value">$3M/mês</span>
+                        </div>
+                    </div>
+                    <div class="revenue-total">
+                        <span class="revenue-total-label">Receita Ano 2</span>
+                        <span class="revenue-total-value">$36M+</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Impact Section -->
+    <section class="impact" id="impacto">
+        <div class="container">
+            <h2 class="section-title">Impacto <span>Social</span></h2>
+            <p class="section-subtitle">
+                Transformando vidas através da colaboração descentralizada
+            </p>
+            <div class="impact-stories">
+                <div class="impact-card fade-in">
+                    <span class="impact-card-quote">"</span>
+                    <p>Com apenas $10 consegui mudar minha situação financeira. O sistema é justo porque não depende de ninguém controlando - é tudo automático na blockchain.</p>
+                    <div class="impact-card-author">
+                        <div class="impact-card-avatar">MS</div>
+                        <div class="impact-card-info">
+                            <h4>Maria Silva</h4>
+                            <span>Empreendedora, São Paulo</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="impact-card fade-in">
+                    <span class="impact-card-quote">"</span>
+                    <p>A transparência é o que me convenceu. Posso ver tudo na blockchain - o Jupiter Pool, as filas, as distribuições. Não tem como manipular.</p>
+                    <div class="impact-card-author">
+                        <div class="impact-card-avatar">JC</div>
+                        <div class="impact-card-info">
+                            <h4>João Costa</h4>
+                            <span>Desenvolvedor, Minas Gerais</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="impact-card fade-in">
+                    <span class="impact-card-quote">"</span>
+                    <p>Não precisei indicar ninguém para ganhar. Claro que quando indiquei amigos ganhei mais, mas o sistema funciona mesmo sem isso.</p>
+                    <div class="impact-card-author">
+                        <div class="impact-card-avatar">AF</div>
+                        <div class="impact-card-info">
+                            <h4>Ana Ferreira</h4>
+                            <span>Designer, Rio de Janeiro</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="impact-numbers fade-in">
+                <div class="impact-number">
+                    <div class="impact-number-value">$10</div>
+                    <div class="impact-number-label">Entrada Única</div>
+                </div>
+                <div class="impact-number">
+                    <div class="impact-number-value">1.841x</div>
+                    <div class="impact-number-label">ROI Potencial</div>
+                </div>
+                <div class="impact-number">
+                    <div class="impact-number-value">24/7</div>
+                    <div class="impact-number-label">Automático</div>
+                </div>
+                <div class="impact-number">
+                    <div class="impact-number-value">100%</div>
+                    <div class="impact-number-label">Descentralizado</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Section -->
+    <section class="technology" id="tecnologia">
+        <div class="container">
+            <h2 class="section-title">Nossa <span>Tecnologia</span></h2>
+            <p class="section-subtitle">
+                Infraestrutura blockchain robusta e escalável
+            </p>
+            <div class="tech-grid">
+                <div class="tech-card fade-in">
+                    <div class="tech-icon">⛓️</div>
+                    <h3>Smart Contract BSC</h3>
+                    <p>Contrato inteligente auditado na Binance Smart Chain com regras imutáveis</p>
+                </div>
+                <div class="tech-card fade-in">
+                    <div class="tech-icon">💎</div>
+                    <h3>USDT (BEP-20)</h3>
+                    <p>Stablecoin pareada ao dólar para estabilidade de valor</p>
+                </div>
+                <div class="tech-card fade-in">
+                    <div class="tech-icon">🧠</div>
+                    <h3>IA Anti-Travamento</h3>
+                    <p>Inteligência artificial que monitora e garante funcionamento perpétuo</p>
+                </div>
+                <div class="tech-card fade-in">
+                    <div class="tech-icon">🪐</div>
+                    <h3>Jupiter Pool</h3>
+                    <p>Fundo de proteção transparente visível a todos os usuários</p>
+                </div>
+                <div class="tech-card fade-in">
+                    <div class="tech-icon">🔐</div>
+                    <h3>Sem Custódia</h3>
+                    <p>Fundos nunca passam por carteiras controladas. 100% non-custodial</p>
+                </div>
+                <div class="tech-card fade-in">
+                    <div class="tech-icon">📊</div>
+                    <h3>Dashboard Web3</h3>
+                    <p>Interface moderna conectada diretamente à blockchain</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Investment Section -->
+    <section class="investment" id="investimento">
+        <div class="container">
+            <h2 class="section-title">Oportunidade <span>Única</span></h2>
+            <p class="section-subtitle">
+                Buscamos um único investidor estratégico para ser sócio fundador
+            </p>
+            <div class="investment-single">
+                <div class="investment-card fade-in">
+                    <h3>Investidor Estratégico</h3>
+                    <p class="subtitle">Sócio Fundador - Vaga Única</p>
+                    <div class="amount">$25.000</div>
+                    <div class="investment-features">
+                        <div class="investment-feature">
+                            <span class="investment-feature-icon">✓</span>
+                            <span>2% de participação societária</span>
+                        </div>
+                        <div class="investment-feature">
+                            <span class="investment-feature-icon">✓</span>
+                            <span>Acesso ao conselho consultivo</span>
+                        </div>
+                        <div class="investment-feature">
+                            <span class="investment-feature-icon">✓</span>
+                            <span>Relatórios mensais detalhados</span>
+                        </div>
+                        <div class="investment-feature">
+                            <span class="investment-feature-icon">✓</span>
+                            <span>Participação nos lucros</span>
+                        </div>
+                        <div class="investment-feature">
+                            <span class="investment-feature-icon">✓</span>
+                            <span>Visibilidade total da operação</span>
+                        </div>
+                        <div class="investment-feature">
+                            <span class="investment-feature-icon">✓</span>
+                            <span>Direito de voto em decisões estratégicas</span>
+                        </div>
+                    </div>
+                    <div class="investment-equity">
+                        <div class="investment-equity-label">Participação Societária</div>
+                        <div class="investment-equity-value">2%</div>
+                    </div>
+                    <p class="investment-note">
+                        Oportunidade limitada a um único investidor. Primeiro a confirmar garante a vaga.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projection Section -->
+    <section class="projection" id="projecao">
+        <div class="container">
+            <h2 class="section-title">Projeção de <span>Retorno do Investidor</span></h2>
+            <p class="section-subtitle">
+                Cenário de crescimento exponencial baseado em entrada inicial de 3.000 usuários no Mês 1
+            </p>
+            <div class="projection-content">
+                <div class="projection-card fade-in">
+                    <h3>📈 Crescimento Mensal</h3>
+                    <table class="projection-table">
+                        <thead>
+                            <tr>
+                                <th>Mês</th>
+                                <th>Usuários</th>
+                                <th>Lucro 40%</th>
+                                <th>Seu 2%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Mês 1</td>
+                                <td>3.000</td>
+                                <td>$18.000</td>
+                                <td class="highlight">$360</td>
+                            </tr>
+                            <tr>
+                                <td>Mês 2</td>
+                                <td>9.000</td>
+                                <td>$54.000</td>
+                                <td class="highlight">$1.080</td>
+                            </tr>
+                            <tr>
+                                <td>Mês 3</td>
+                                <td>21.000</td>
+                                <td>$126.000</td>
+                                <td class="highlight">$2.520</td>
+                            </tr>
+                            <tr>
+                                <td>Mês 4</td>
+                                <td>45.000</td>
+                                <td>$270.000</td>
+                                <td class="highlight">$5.400</td>
+                            </tr>
+                            <tr>
+                                <td>Mês 5</td>
+                                <td>75.000</td>
+                                <td>$450.000</td>
+                                <td class="highlight">$9.000</td>
+                            </tr>
+                            <tr>
+                                <td>Mês 6</td>
+                                <td>120.000</td>
+                                <td>$720.000</td>
+                                <td class="highlight">$14.400</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="projection-card fade-in">
+                    <h3>💰 Retorno Acumulado</h3>
+                    <table class="projection-table">
+                        <thead>
+                            <tr>
+                                <th>Mês</th>
+                                <th>Usuários</th>
+                                <th>Seu 2%</th>
+                                <th>Acumulado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="payback-row">
+                                <td>Mês 7</td>
+                                <td>180.000</td>
+                                <td>$21.600</td>
+                                <td>$54.360 ✅</td>
+                            </tr>
+                            <tr>
+                                <td>Mês 8</td>
+                                <td>255.000</td>
+                                <td>$30.600</td>
+                                <td class="highlight">$84.960</td>
+                            </tr>
+                            <tr>
+                                <td>Mês 9</td>
+                                <td>360.000</td>
+                                <td>$43.200</td>
+                                <td class="highlight">$128.160</td>
+                            </tr>
+                            <tr>
+                                <td>Mês 10</td>
+                                <td>480.000</td>
+                                <td>$57.600</td>
+                                <td class="highlight">$185.760</td>
+                            </tr>
+                            <tr>
+                                <td>Mês 11</td>
+                                <td>630.000</td>
+                                <td>$75.600</td>
+                                <td class="highlight">$261.360</td>
+                            </tr>
+                            <tr>
+                                <td>Mês 12</td>
+                                <td>810.000</td>
+                                <td>$97.200</td>
+                                <td class="highlight">$358.560</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="projection-summary fade-in">
+                <div class="projection-summary-header">
+                    <h3>🎯 Resumo - Projeção Anual</h3>
+                    <p style="color: var(--text-secondary);">Projeção baseada em crescimento exponencial viral</p>
+                </div>
+                <div class="projection-summary-grid">
+                    <div class="projection-summary-item">
+                        <div class="projection-summary-value gold">~7 meses</div>
+                        <div class="projection-summary-label">Payback</div>
+                    </div>
+                    <div class="projection-summary-item">
+                        <div class="projection-summary-value">$358.560</div>
+                        <div class="projection-summary-label">Lucro Ano 1</div>
+                    </div>
+                    <div class="projection-summary-item">
+                        <div class="projection-summary-value">$2.700.000</div>
+                        <div class="projection-summary-label">Lucro Ano 2</div>
+                    </div>
+                    <div class="projection-summary-item">
+                        <div class="projection-summary-value gold">120x</div>
+                        <div class="projection-summary-label">ROI Total</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="projection-source fade-in">
+                <h4>💎 Fonte de Receita</h4>
+                <p>O lucro do sistema vem exclusivamente da <strong>Participação nos Ciclos (40%)</strong> - quando um usuário está na Posição 5 da matriz, 40% do valor é destinado ao lucro do sistema. Seu investimento de $25.000 garante 2% de todo esse lucro, perpetuamente.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content fade-in">
+                <img src="logo.png" alt="7iATLAS" class="cta-logo">
+                <h2>Seja o <span>Sócio Fundador</span><br>do Futuro da Economia Colaborativa</h2>
+                <p>
+                    Uma oportunidade única de participar do primeiro sistema de ajuda mútua
+                    100% descentralizado do mundo. Seu investimento, nosso sucesso compartilhado.
+                </p>
+                <div class="cta-buttons">
+                    <a href="#contato" class="btn btn-primary">Quero Ser Sócio Fundador</a>
+                    <a href="#" class="btn btn-secondary">Baixar Documentação</a>
+                </div>
+                <div class="cta-contact">
+                    <p>Contato equipe:</p>
+                    <a href="mailto:projeto@7iatlas.ai">projeto@7iatlas.ai</a>
+                    <a href="https://7iatlas.ai" target="_blank">www.7iatlas.ai</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="logo">
+            <img src="logo.png" alt="7iATLAS" style="height: 40px;">
+        </div>
+        <p>© 2025 7iATLAS. Todos os direitos reservados. | Documento confidencial para investidores.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.8rem;">100% Descentralizado | Smart Contract Auditado | Binance Smart Chain</p>
+    </footer>
+
+    <!-- Scroll Animation Script -->
+    <script>
+        // Scenario Tabs
+        function showScenario(scenario) {
+            // Hide all scenarios
+            document.querySelectorAll('.scenario-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            // Remove active from all tabs
+            document.querySelectorAll('.scenario-tab').forEach(el => {
+                el.classList.remove('active');
+            });
+            // Show selected scenario
+            document.getElementById('scenario-' + scenario).classList.add('active');
+            // Activate clicked tab
+            event.target.classList.add('active');
+        }
+
+        // Intersection Observer for fade-in animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Nav background on scroll
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('.nav');
+            if (window.scrollY > 100) {
+                nav.style.background = 'rgba(10, 10, 15, 0.98)';
+            } else {
+                nav.style.background = 'rgba(10, 10, 15, 0.9)';
+            }
+        });
+    </script>
+</body>
+</html>
