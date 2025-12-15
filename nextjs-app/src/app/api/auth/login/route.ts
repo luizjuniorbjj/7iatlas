@@ -28,6 +28,11 @@ export async function POST(request: NextRequest) {
           },
         })
       }
+      // Em modo demo, não aceita outras credenciais
+      return NextResponse.json(
+        { success: false, error: 'Email ou senha incorretos!' },
+        { status: 401 }
+      )
     }
 
     // Validações
