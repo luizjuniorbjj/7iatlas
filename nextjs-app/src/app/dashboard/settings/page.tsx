@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Image from 'next/image'
+import DashboardLayout from '@/components/layout/DashboardLayout'
 
 interface UserData {
   id: string
@@ -178,16 +178,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <DashboardLayout>
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="font-orbitron text-2xl font-bold">Configurações</h1>
-          <p className="text-text-secondary">Gerencie sua conta e preferências</p>
-        </div>
-        <Link href="/dashboard" className="btn-secondary">
-          ← Voltar
-        </Link>
+      <div className="mb-8">
+        <h1 className="font-orbitron text-2xl font-bold">Configurações</h1>
+        <p className="text-text-secondary">Gerencie sua conta e preferências</p>
       </div>
 
       {/* Message */}
@@ -379,6 +374,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

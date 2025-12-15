@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Image from 'next/image'
+import DashboardLayout from '@/components/layout/DashboardLayout'
 
 interface JupiterPoolData {
   balance: number
@@ -66,19 +66,14 @@ export default function JupiterPoolPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <DashboardLayout>
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="font-orbitron text-2xl font-bold flex items-center gap-3">
-            <span className="text-3xl">🪐</span>
-            Jupiter Pool
-          </h1>
-          <p className="text-text-secondary">Fundo de Liquidez do Sistema</p>
-        </div>
-        <Link href="/dashboard" className="btn-secondary">
-          ← Voltar
-        </Link>
+      <div className="mb-8">
+        <h1 className="font-orbitron text-2xl font-bold flex items-center gap-3">
+          <span className="text-3xl">🪐</span>
+          Jupiter Pool
+        </h1>
+        <p className="text-text-secondary">Fundo de Liquidez do Sistema</p>
       </div>
 
       {/* Main Balance Card */}
@@ -207,6 +202,6 @@ export default function JupiterPoolPage() {
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

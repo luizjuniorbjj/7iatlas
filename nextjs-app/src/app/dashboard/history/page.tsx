@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Image from 'next/image'
+import DashboardLayout from '@/components/layout/DashboardLayout'
 
 interface Transaction {
   id: string
@@ -101,16 +101,11 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <DashboardLayout>
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="font-orbitron text-2xl font-bold">Histórico</h1>
-          <p className="text-text-secondary">Todas as suas transações</p>
-        </div>
-        <Link href="/dashboard" className="btn-secondary">
-          ← Voltar
-        </Link>
+      <div className="mb-8">
+        <h1 className="font-orbitron text-2xl font-bold">Histórico</h1>
+        <p className="text-text-secondary">Todas as suas transações</p>
       </div>
 
       {/* Stats Cards */}
@@ -284,6 +279,6 @@ export default function HistoryPage() {
           </>
         )}
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

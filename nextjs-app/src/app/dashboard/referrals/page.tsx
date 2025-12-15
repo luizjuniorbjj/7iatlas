@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Image from 'next/image'
+import DashboardLayout from '@/components/layout/DashboardLayout'
 
 interface Referral {
   id: string
@@ -105,16 +105,11 @@ export default function ReferralsPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <DashboardLayout>
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="font-orbitron text-2xl font-bold">Indicações</h1>
-          <p className="text-text-secondary">Gerencie seus indicados e acompanhe seus ganhos</p>
-        </div>
-        <Link href="/dashboard" className="btn-secondary">
-          ← Voltar
-        </Link>
+      <div className="mb-8">
+        <h1 className="font-orbitron text-2xl font-bold">Indicações</h1>
+        <p className="text-text-secondary">Gerencie seus indicados e acompanhe seus ganhos</p>
       </div>
 
       {/* Stats Cards */}
@@ -294,6 +289,6 @@ export default function ReferralsPage() {
           )}
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

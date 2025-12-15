@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Image from 'next/image'
+import DashboardLayout from '@/components/layout/DashboardLayout'
 import QuotaCard from '@/components/quotas/QuotaCard'
 import QuotaList from '@/components/quotas/QuotaList'
 
@@ -118,98 +118,58 @@ export default function QuotasPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-bg-card-solid border-r border-white/10 p-6 flex flex-col">
-        <Link href="/dashboard" className="mb-8">
-          <Image
-            src="/logo.png"
-            alt="7iATLAS"
-            width={150}
-            height={50}
-            className="h-auto"
-            priority
+    <DashboardLayout>
+      <div className="flex justify-between items-start mb-8">
+        <div>
+          <h1 className="font-orbitron text-2xl font-bold">Comprar Cotas</h1>
+          <p className="text-text-secondary">
+            Compre múltiplas posições em qualquer nível da matriz
+          </p>
+        </div>
+
+        <div className="glass-card px-6 py-3">
+          <div className="text-sm text-text-secondary">Saldo disponível</div>
+          <div className="font-orbitron text-xl font-bold text-green-aurora">
+            ${userBalance.toFixed(2)}
+          </div>
+        </div>
+      </div>
+
+      {/* Mensagens */}
+      {error && (
+        <div className="p-4 bg-red/10 border border-red/20 rounded-xl mb-6">
+          <p className="text-red">{error}</p>
+        </div>
+      )}
+      {success && (
+        <div className="p-4 bg-green-aurora/10 border border-green-aurora/20 rounded-xl mb-6">
+          <p className="text-green-aurora">{success}</p>
+        </div>
+      )}
+
+      {/* Grid de Níveis */}
+      <div className="grid grid-cols-5 gap-4 mb-8">
+        {quotaInfo.map((info) => (
+          <QuotaCard
+            key={info.level}
+            level={info.level}
+            currentQuotas={info.count}
+            canPurchase={info.canPurchase && userBalance >= levelValues[info.level - 1]}
+            reason={
+              !info.canPurchase
+                ? info.reason
+                : userBalance < levelValues[info.level - 1]
+                ? 'Saldo insuficiente'
+                : undefined
+            }
+            onPurchase={() => handlePurchase(info.level)}
+            loading={purchasing === info.level}
           />
-        </Link>
+        ))}
+      </div>
 
-        <nav className="flex-1 space-y-2">
-          <Link href="/dashboard" className="nav-item">
-            <span>🏠</span>
-            <span>Dashboard</span>
-          </Link>
-          <Link href="/dashboard/quotas" className="nav-item active">
-            <span>🎫</span>
-            <span>Cotas</span>
-          </Link>
-          <Link href="/dashboard/matrix" className="nav-item">
-            <span>📊</span>
-            <span>Matriz</span>
-          </Link>
-          <Link href="/dashboard/transfers" className="nav-item">
-            <span>💸</span>
-            <span>Transferências</span>
-          </Link>
-          <Link href="/dashboard/notifications" className="nav-item">
-            <span>🔔</span>
-            <span>Notificações</span>
-          </Link>
-        </nav>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-8">
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="font-orbitron text-2xl font-bold">Comprar Cotas</h1>
-            <p className="text-text-secondary">
-              Compre múltiplas posições em qualquer nível da matriz
-            </p>
-          </div>
-
-          <div className="glass-card px-6 py-3">
-            <div className="text-sm text-text-secondary">Saldo disponível</div>
-            <div className="font-orbitron text-xl font-bold text-green-aurora">
-              ${userBalance.toFixed(2)}
-            </div>
-          </div>
-        </div>
-
-        {/* Mensagens */}
-        {error && (
-          <div className="p-4 bg-red/10 border border-red/20 rounded-xl mb-6">
-            <p className="text-red">{error}</p>
-          </div>
-        )}
-        {success && (
-          <div className="p-4 bg-green-aurora/10 border border-green-aurora/20 rounded-xl mb-6">
-            <p className="text-green-aurora">{success}</p>
-          </div>
-        )}
-
-        {/* Grid de Níveis */}
-        <div className="grid grid-cols-5 gap-4 mb-8">
-          {quotaInfo.map((info) => (
-            <QuotaCard
-              key={info.level}
-              level={info.level}
-              currentQuotas={info.count}
-              canPurchase={info.canPurchase && userBalance >= levelValues[info.level - 1]}
-              reason={
-                !info.canPurchase
-                  ? info.reason
-                  : userBalance < levelValues[info.level - 1]
-                  ? 'Saldo insuficiente'
-                  : undefined
-              }
-              onPurchase={() => handlePurchase(info.level)}
-              loading={purchasing === info.level}
-            />
-          ))}
-        </div>
-
-        {/* Lista de Cotas */}
-        <QuotaList />
-      </main>
-    </div>
+      {/* Lista de Cotas */}
+      <QuotaList />
+    </DashboardLayout>
   )
 }
