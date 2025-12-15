@@ -1,6 +1,12 @@
 // 7iATLAS - Matrix Service
 // Sistema de processamento da matriz 6x1
-// Versão 1.4 - Suporte a múltiplas cotas e compra em níveis superiores
+// Versão 1.5 - Jupiter Pool 10%, Bônus Variável, Limite 10 cotas
+//
+// REGRAS CRÍTICAS (7iATLAS-DOCUMENTACAO-TECNICA.md):
+// - Jupiter Pool: 10% do ganho bruto do Recebedor
+// - Bônus Variável: 0% (0-4 ind), 20% (5-9 ind), 40% (10+ ind)
+// - Limite: Máximo 10 cotas por usuário por nível
+// - N10: Posições 2 e 4 vão para RESERVA DO SISTEMA (não existe N11)
 
 import prisma from '@/lib/prisma'
 import { CyclePosition } from '@/types'
@@ -11,6 +17,8 @@ import { blockchainService } from './blockchain.service'
 // ==========================================
 
 const MATRIX_SIZE = 7 // 1 recebedor + 6 posições
+const MAX_QUOTAS_PER_LEVEL = 10 // Limite máximo de cotas por nível
+const JUPITER_POOL_PERCENT = 0.10 // 10% do ganho vai para Jupiter Pool
 const POSITIONS: CyclePosition[] = [
   'RECEIVER',   // 0 - Recebedor
   'DONATE_1',   // 1 - Doa para recebedor
@@ -57,10 +65,48 @@ export function calculateReward(level: number): number {
 }
 
 /**
- * Calcula o bônus de indicação (40% do valor)
+ * Calcula o bônus de indicação MÁXIMO (40% do valor)
+ * O valor real depende do bônus variável (0%, 20% ou 40%)
  */
 export function calculateBonus(level: number): number {
   return calculateLevelValue(level) * 0.4
+}
+
+/**
+ * Calcula a porcentagem de bônus variável baseado nos indicados ativos
+ * Conforme 7iATLAS-DOCUMENTACAO-TECNICA.md seção 7.2.1
+ *
+ * Faixas:
+ * - 0-4 indicados:  0% (não recebe bônus)
+ * - 5-9 indicados:  20%
+ * - 10+ indicados:  40%
+ *
+ * @returns Porcentagem de bônus (0, 0.20 ou 0.40)
+ */
+export function calculateVariableBonus(activeReferralsCount: number): number {
+  if (activeReferralsCount >= 10) {
+    return 0.40 // 40%
+  } else if (activeReferralsCount >= 5) {
+    return 0.20 // 20%
+  }
+  return 0 // 0%
+}
+
+/**
+ * Retorna informações sobre a faixa de bônus atual
+ */
+export function getBonusTierInfo(activeReferralsCount: number): {
+  percent: number
+  label: string
+  nextTierAt: number | null
+  nextTierPercent: number | null
+} {
+  if (activeReferralsCount >= 10) {
+    return { percent: 40, label: '40%', nextTierAt: null, nextTierPercent: null }
+  } else if (activeReferralsCount >= 5) {
+    return { percent: 20, label: '20%', nextTierAt: 10, nextTierPercent: 40 }
+  }
+  return { percent: 0, label: '0%', nextTierAt: 5, nextTierPercent: 20 }
 }
 
 /**
@@ -212,6 +258,10 @@ export async function countUserQuotas(userId: string, levelNumber: number): Prom
 
 /**
  * Verifica se usuário pode comprar cota em um nível
+ * Validações:
+ * - Usuário deve estar ACTIVE
+ * - Limite de 10 cotas por nível
+ * - Para N>1, precisa ter cota no nível anterior
  */
 export async function canPurchaseQuota(userId: string, levelNumber: number): Promise<CanPurchaseResult> {
   const user = await prisma.user.findUnique({
@@ -226,7 +276,29 @@ export async function canPurchaseQuota(userId: string, levelNumber: number): Pro
     return { canPurchase: false, reason: 'Usuário não está ativo' }
   }
 
-  // Nível 1 sempre permitido para usuários ativos
+  // Verifica limite de 10 cotas por nível
+  const level = await prisma.level.findUnique({
+    where: { levelNumber },
+  })
+
+  if (level) {
+    const currentQuotasInLevel = await prisma.queueEntry.count({
+      where: {
+        userId,
+        levelId: level.id,
+        status: 'WAITING', // Conta apenas cotas ativas
+      },
+    })
+
+    if (currentQuotasInLevel >= MAX_QUOTAS_PER_LEVEL) {
+      return {
+        canPurchase: false,
+        reason: `Limite máximo de ${MAX_QUOTAS_PER_LEVEL} cotas por nível atingido`,
+      }
+    }
+  }
+
+  // Nível 1 sempre permitido para usuários ativos (se não atingiu limite)
   if (levelNumber === 1) {
     return { canPurchase: true }
   }
@@ -236,15 +308,15 @@ export async function canPurchaseQuota(userId: string, levelNumber: number): Pro
 
   if (previousLevelQuotas === 0) {
     // Verifica também se já teve cota no nível anterior (já pode ter ciclado)
-    const level = await prisma.level.findUnique({
+    const prevLevel = await prisma.level.findUnique({
       where: { levelNumber: levelNumber - 1 },
     })
 
-    if (level) {
+    if (prevLevel) {
       const hadQuota = await prisma.queueEntry.count({
         where: {
           userId,
-          levelId: level.id,
+          levelId: prevLevel.id,
         },
       })
 
@@ -481,6 +553,11 @@ export async function canProcessCycle(levelNumber: number): Promise<boolean> {
 
 /**
  * Processa um ciclo completo da matriz
+ *
+ * REGRAS CRÍTICAS:
+ * - RECEIVER: Ganha 2× - 10% Jupiter Pool = Líquido
+ * - COMMUNITY (pos 5): 10% reserva + 10% op + BÔNUS VARIÁVEL + lucro
+ * - N10: Posições 2 e 4 vão para RESERVA DO SISTEMA (não profit)
  */
 export async function processCycle(levelNumber: number) {
   // Verifica se pode processar
@@ -505,8 +582,7 @@ export async function processCycle(levelNumber: number) {
   const cycleGroupId = `cycle_${Date.now()}_${levelNumber}`
 
   const entryValue = level.entryValue.toNumber()
-  const rewardValue = level.rewardValue.toNumber()
-  const bonusValue = level.bonusValue.toNumber()
+  const rewardValue = level.rewardValue.toNumber() // Ganho bruto (2×)
 
   // Processa cada posição
   const results = []
@@ -520,17 +596,29 @@ export async function processCycle(levelNumber: number) {
 
     switch (position) {
       case 'RECEIVER':
-        // Recebedor ganha 2x
-        amount = rewardValue
+        // ======================================
+        // RECEBEDOR - Com Jupiter Pool 10%
+        // ======================================
+        const grossReward = rewardValue // Ex: $20 no N1
+        const jupiterPoolAmount = grossReward * JUPITER_POOL_PERCENT // 10% = $2
+        const netReward = grossReward - jupiterPoolAmount // $18 líquido
+
+        amount = netReward
         action = 'receive'
 
-        // Paga ao recebedor
-        await processPayment(participant.user.walletAddress, amount, `Ciclo Nível ${levelNumber}`)
+        // Paga ao recebedor (valor LÍQUIDO)
+        await processPayment(participant.user.walletAddress, netReward, `Ciclo Nível ${levelNumber}`)
 
-        // Atualiza saldo do usuário
+        // Atualiza saldo do usuário (valor líquido)
         await prisma.user.update({
           where: { id: participant.userId },
-          data: { totalEarned: { increment: amount } },
+          data: { totalEarned: { increment: netReward } },
+        })
+
+        // Jupiter Pool recebe 10%
+        await prisma.systemFunds.update({
+          where: { id: 1 },
+          data: { jupiterPool: { increment: jupiterPoolAmount } },
         })
 
         // Avança para próximo nível (se não for nível 10)
@@ -540,16 +628,6 @@ export async function processCycle(levelNumber: number) {
 
         // Reentra no mesmo nível
         await addToQueue(participant.userId, levelNumber)
-
-        // Paga bônus ao indicador
-        if (participant.user.referrerId) {
-          await payReferralBonus(
-            participant.user.referrerId,
-            participant.userId,
-            levelNumber,
-            bonusValue
-          )
-        }
         break
 
       case 'DONATE_1':
@@ -561,8 +639,9 @@ export async function processCycle(levelNumber: number) {
 
       case 'ADVANCE_1':
       case 'ADVANCE_2':
-        // Níveis 1-9: Alimenta o caixa do próximo nível
-        // Nível 10: Vai para COMUNIDADE (não existe nível 11)
+        // ======================================
+        // AVANÇAR - N1-9 para N+1, N10 para RESERVA
+        // ======================================
         amount = entryValue
         action = 'advance'
 
@@ -573,46 +652,74 @@ export async function processCycle(levelNumber: number) {
             data: { cashBalance: { increment: amount } },
           })
         } else {
-          // NÍVEL 10: Vai 100% para COMUNIDADE (profit)
-          // SEM divisão, SEM bônus - tudo vai direto pro lucro do sistema
-          // A PESSOA faz reentrada normal (tratado abaixo nas reentradas)
+          // ⚠️ NÍVEL 10: Vai para RESERVA DO SISTEMA (não existe N11)
+          // Conforme documentação seção 2.1 - Regra Especial do NÍVEL 10
           await prisma.systemFunds.update({
             where: { id: 1 },
             data: {
-              profit: { increment: amount },  // 100% vai pro lucro
+              reserve: { increment: amount }, // RESERVA, não profit!
             },
           })
         }
         break
 
       case 'COMMUNITY':
-        // Distribui: 10% reserva, 10% operacional, 40% bônus (se houver), 40% lucro
+        // ======================================
+        // COMUNIDADE - Com BÔNUS VARIÁVEL
+        // ======================================
         amount = entryValue
         action = 'community'
 
-        const reserveAmount = amount * 0.10
-        const operationalAmount = amount * 0.10
-        const bonusAmount = amount * 0.40
-        const profitAmount = amount * 0.40
+        const reserveAmount = amount * 0.10    // 10% → Reserva Interna
+        const operationalAmount = amount * 0.10 // 10% → Operacional
+        const bonusPool = amount * 0.40         // 40% → Pool de bônus
+        const baseProfitAmount = amount * 0.40  // 40% → Lucro base
 
+        // Calcula bônus variável se tiver indicador
+        let actualBonusPaid = 0
+        let bonusToProfit = bonusPool // Se não tiver indicador, tudo vai pro lucro
+
+        if (participant.user.referrerId) {
+          // Busca indicador e conta indicados ativos
+          const referrer = await prisma.user.findUnique({
+            where: { id: participant.user.referrerId },
+            include: {
+              referrals: {
+                where: { status: 'ACTIVE' },
+              },
+            },
+          })
+
+          if (referrer && referrer.status === 'ACTIVE') {
+            const activeReferralsCount = referrer.referrals.length
+            const bonusPercent = calculateVariableBonus(activeReferralsCount)
+
+            // Calcula bônus real baseado na porcentagem variável
+            // bonusPercent pode ser 0%, 20% ou 40%
+            actualBonusPaid = amount * bonusPercent
+            bonusToProfit = bonusPool - actualBonusPaid
+
+            if (actualBonusPaid > 0) {
+              await payReferralBonusVariable(
+                participant.user.referrerId,
+                participant.userId,
+                levelNumber,
+                actualBonusPaid,
+                bonusPercent * 100 // Para log
+              )
+            }
+          }
+        }
+
+        // Atualiza fundos do sistema
         await prisma.systemFunds.update({
           where: { id: 1 },
           data: {
             reserve: { increment: reserveAmount },
             operational: { increment: operationalAmount },
-            profit: { increment: profitAmount + (participant.user.referrerId ? 0 : bonusAmount) },
+            profit: { increment: baseProfitAmount + bonusToProfit },
           },
         })
-
-        // Se tiver indicador, paga bônus
-        if (participant.user.referrerId) {
-          await payReferralBonus(
-            participant.user.referrerId,
-            participant.userId,
-            levelNumber,
-            bonusAmount
-          )
-        }
         break
 
       case 'REENTRY':
@@ -649,7 +756,7 @@ export async function processCycle(levelNumber: number) {
       },
     })
 
-    // Reentrada para posições 1-4 e 6
+    // Reentrada para posições 1-4 e 6 (pos 5 COMMUNITY não reentra)
     if (['DONATE_1', 'ADVANCE_1', 'DONATE_2', 'ADVANCE_2', 'REENTRY'].includes(position)) {
       await addToQueue(participant.userId, levelNumber)
     }
@@ -671,17 +778,20 @@ export async function processCycle(levelNumber: number) {
     },
   })
 
-  // Atualiza totais do sistema
+  // Atualiza totais do sistema (valor líquido pago ao receiver)
+  const netPaid = rewardValue * (1 - JUPITER_POOL_PERCENT)
   await prisma.systemFunds.update({
     where: { id: 1 },
-    data: { totalOut: { increment: rewardValue } },
+    data: { totalOut: { increment: netPaid } },
   })
 
   return {
     cycleGroupId,
     level: levelNumber,
     participants: results,
-    totalPaid: rewardValue,
+    grossPaid: rewardValue,
+    jupiterPoolDeposit: rewardValue * JUPITER_POOL_PERCENT,
+    netPaid,
   }
 }
 
@@ -703,13 +813,33 @@ async function processPayment(toAddress: string, amount: number, description: st
 }
 
 /**
- * Paga bônus de indicação
+ * Paga bônus de indicação (função legada - mantida para compatibilidade)
  */
 async function payReferralBonus(
   referrerId: string,
   referredId: string,
   levelNumber: number,
   amount: number
+) {
+  return payReferralBonusVariable(referrerId, referredId, levelNumber, amount, 40)
+}
+
+/**
+ * Paga bônus de indicação com sistema variável
+ * Conforme 7iATLAS-DOCUMENTACAO-TECNICA.md seção 7.2.1
+ *
+ * @param referrerId ID do indicador
+ * @param referredId ID do indicado
+ * @param levelNumber Nível do ciclo
+ * @param amount Valor do bônus a pagar
+ * @param bonusPercentApplied Porcentagem aplicada (0, 20 ou 40) - para log
+ */
+async function payReferralBonusVariable(
+  referrerId: string,
+  referredId: string,
+  levelNumber: number,
+  amount: number,
+  bonusPercentApplied: number
 ) {
   const referrer = await prisma.user.findUnique({
     where: { id: referrerId },
@@ -727,7 +857,7 @@ async function payReferralBonus(
   try {
     const txHash = await blockchainService.sendUSDT(referrer.walletAddress, amount)
 
-    // Registra bônus
+    // Registra bônus com porcentagem aplicada
     await prisma.bonusHistory.create({
       data: {
         referrerId,
@@ -737,6 +867,10 @@ async function payReferralBonus(
         txHash,
         status: 'CONFIRMED',
         confirmedAt: new Date(),
+        metadata: {
+          bonusPercentApplied,
+          isVariableBonus: true,
+        },
       },
     })
 
@@ -745,6 +879,8 @@ async function payReferralBonus(
       where: { id: referrerId },
       data: { totalBonus: { increment: amount } },
     })
+
+    console.log(`Bônus pago: $${amount} (${bonusPercentApplied}%) para ${referrerId}`)
   } catch (error) {
     console.error('Erro ao pagar bônus:', error)
   }
@@ -813,6 +949,8 @@ export const matrixService = {
   calculateLevelValue,
   calculateReward,
   calculateBonus,
+  calculateVariableBonus,
+  getBonusTierInfo,
   calculateReferralPoints,
   calculateScore,
   // Fila
@@ -830,4 +968,7 @@ export const matrixService = {
   canProcessCycle,
   processCycle,
   activateUser,
+  // Constantes
+  MAX_QUOTAS_PER_LEVEL,
+  JUPITER_POOL_PERCENT,
 }

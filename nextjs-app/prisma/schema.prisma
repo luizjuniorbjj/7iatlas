@@ -227,6 +227,7 @@ model BonusHistory {
   amount        Decimal   @db.Decimal(18, 2)
   txHash        String?
   status        TransactionStatus @default(PENDING)
+  metadata      Json?     // {bonusPercentApplied: 0|20|40, isVariableBonus: true}
 
   createdAt     DateTime  @default(now())
   confirmedAt   DateTime?
@@ -267,6 +268,7 @@ model SystemFunds {
   reserve       Decimal   @default(0) @db.Decimal(18, 2)  // 10% - Anti-travamento
   operational   Decimal   @default(0) @db.Decimal(18, 2)  // 10% - Custos operacionais
   profit        Decimal   @default(0) @db.Decimal(18, 2)  // 40% - Lucro do sistema
+  jupiterPool   Decimal   @default(0) @db.Decimal(18, 2)  // 10% do ganho do Recebedor
 
   totalIn       Decimal   @default(0) @db.Decimal(18, 2)
   totalOut      Decimal   @default(0) @db.Decimal(18, 2)

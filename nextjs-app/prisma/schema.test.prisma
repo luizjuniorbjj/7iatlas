@@ -1,0 +1,291 @@
+// 7iATLAS - Schema para Testes (SQLite)
+// Este schema usa SQLite para testes locais sem precisar de PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client-test"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./test.db"
+}
+
+// ==========================================
+// ENUMS (SQLite não suporta enums nativamente)
+// ==========================================
+
+// UserStatus: PENDING, ACTIVE, SUSPENDED
+// TransactionType: DEPOSIT, CYCLE_REWARD, BONUS_REFERRAL, WITHDRAWAL, INTERNAL_TRANSFER_IN, INTERNAL_TRANSFER_OUT, QUOTA_PURCHASE
+// TransactionStatus: PENDING, CONFIRMED, FAILED
+// QueueStatus: WAITING, PROCESSING, COMPLETED
+// CyclePosition: RECEIVER, DONATE_1, ADVANCE_1, DONATE_2, ADVANCE_2, COMMUNITY, REENTRY
+// NotificationChannel: EMAIL, PUSH
+// NotificationEvent: QUEUE_ADVANCE, CYCLE_COMPLETED, BONUS_RECEIVED, TRANSFER_RECEIVED, TRANSFER_SENT, SYSTEM_ALERT
+// NotificationStatus: PENDING, SENT, FAILED, CLICKED
+
+// ==========================================
+// MODELS
+// ==========================================
+
+model User {
+  id              String      @id @default(cuid())
+  email           String?     @unique
+  passwordHash    String?
+  walletAddress   String      @unique
+  name            String?
+  referralCode    String      @unique @default(cuid())
+
+  // Relacionamento de indicação
+  referrerId      String?
+  referrer        User?       @relation("Referrals", fields: [referrerId], references: [id])
+  referrals       User[]      @relation("Referrals")
+
+  // Status e estatísticas (usando String em vez de enum para SQLite)
+  status          String      @default("PENDING")
+  currentLevel    Int         @default(1)
+  totalDeposited  Float       @default(0)
+  totalEarned     Float       @default(0)
+  totalBonus      Float       @default(0)
+  totalWithdrawn  Float       @default(0)
+  balance         Float       @default(0)
+
+  // PIN de segurança
+  pinHash           String?
+  pinAttempts       Int         @default(0)
+  pinBlockedUntil   DateTime?
+  pinCreatedAt      DateTime?
+
+  // Preferências de notificação
+  notifyEmail           Boolean   @default(true)
+  notifyPush            Boolean   @default(false)
+  notifyOnQueueAdvance  Boolean   @default(true)
+  notifyOnCycle         Boolean   @default(true)
+  notifyOnBonus         Boolean   @default(true)
+  notifyOnTransfer      Boolean   @default(true)
+  notifyFrequency       String    @default("realtime")
+  showNameInQueue       Boolean   @default(true)
+
+  // Timestamps
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  activatedAt     DateTime?
+
+  // Relacionamentos
+  queueEntries        QueueEntry[]
+  cycleHistory        CycleHistory[]
+  bonusReceived       BonusHistory[]        @relation("BonusReceiver")
+  bonusGenerated      BonusHistory[]        @relation("BonusGenerator")
+  transactions        Transaction[]
+  transfersSent       InternalTransfer[]    @relation("TransfersSent")
+  transfersReceived   InternalTransfer[]    @relation("TransfersReceived")
+  pushSubscriptions   PushSubscription[]
+  notifications       NotificationLog[]
+}
+
+model Level {
+  id            Int       @id @default(autoincrement())
+  levelNumber   Int       @unique
+  entryValue    Float
+  rewardValue   Float
+  bonusValue    Float
+  cashBalance   Float     @default(0)
+  totalCycles   Int       @default(0)
+  totalUsers    Int       @default(0)
+
+  // Relacionamentos
+  queueEntries  QueueEntry[]
+  cycleHistory  CycleHistory[]
+  bonusHistory  BonusHistory[]
+  stats         LevelStats?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model QueueEntry {
+  id          String      @id @default(cuid())
+
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+
+  levelId     Int
+  level       Level       @relation(fields: [levelId], references: [id])
+
+  position    Int         @default(0)
+  score       Float       @default(0)
+  reentries   Int         @default(0)
+  status      String      @default("WAITING")
+
+  quotaNumber Int         @default(1)
+
+  enteredAt   DateTime    @default(now())
+  processedAt DateTime?
+}
+
+model CycleHistory {
+  id          String        @id @default(cuid())
+
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+
+  levelId     Int
+  level       Level         @relation(fields: [levelId], references: [id])
+
+  position    String
+  amount      Float
+  txHash      String?
+  status      String        @default("PENDING")
+
+  cycleGroupId String?
+
+  createdAt   DateTime      @default(now())
+  confirmedAt DateTime?
+}
+
+model BonusHistory {
+  id            String    @id @default(cuid())
+
+  referrerId    String
+  referrer      User      @relation("BonusReceiver", fields: [referrerId], references: [id])
+
+  referredId    String
+  referred      User      @relation("BonusGenerator", fields: [referredId], references: [id])
+
+  levelId       Int
+  level         Level     @relation(fields: [levelId], references: [id])
+
+  amount        Float
+  txHash        String?
+  status        String    @default("PENDING")
+
+  createdAt     DateTime  @default(now())
+  confirmedAt   DateTime?
+}
+
+model Transaction {
+  id            String    @id @default(cuid())
+
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+
+  type          String
+  amount        Float
+  txHash        String?   @unique
+  fromAddress   String?
+  toAddress     String?
+  status        String    @default("PENDING")
+
+  description   String?
+  metadata      String?
+
+  createdAt     DateTime  @default(now())
+  confirmedAt   DateTime?
+}
+
+model SystemFunds {
+  id            Int       @id @default(1)
+  reserve       Float     @default(0)
+  operational   Float     @default(0)
+  profit        Float     @default(0)
+
+  totalIn       Float     @default(0)
+  totalOut      Float     @default(0)
+
+  updatedAt     DateTime  @updatedAt
+}
+
+model SystemConfig {
+  id            Int       @id @default(1)
+
+  minQueueSize  Int       @default(7)
+  maxCyclesPerRun Int     @default(10)
+
+  reservePercent    Float @default(10)
+  operationalPercent Float @default(10)
+  bonusPercent      Float @default(40)
+  profitPercent     Float @default(40)
+
+  transferLimitNoKyc    Float @default(100)
+  transferLimitKyc      Float @default(1000)
+  transferMinAmount     Float @default(10)
+  transferMaxPerDay     Int   @default(3)
+
+  isMaintenanceMode Boolean @default(false)
+  isProcessingEnabled Boolean @default(true)
+
+  updatedAt     DateTime  @updatedAt
+}
+
+model InternalTransfer {
+  id            String    @id @default(cuid())
+
+  fromUserId    String
+  fromUser      User      @relation("TransfersSent", fields: [fromUserId], references: [id])
+
+  toUserId      String
+  toUser        User      @relation("TransfersReceived", fields: [toUserId], references: [id])
+
+  amount        Float
+  status        String    @default("COMPLETED")
+  description   String?
+
+  createdAt     DateTime  @default(now())
+}
+
+model LevelStats {
+  id              Int       @id @default(autoincrement())
+
+  levelId         Int       @unique
+  level           Level     @relation(fields: [levelId], references: [id])
+
+  totalCycles     Int       @default(0)
+  cyclesToday     Int       @default(0)
+  avgCyclesPerDay Float     @default(0)
+
+  avgWaitTime     Int       @default(0)
+  minWaitTime     Int?
+  maxWaitTime     Int?
+
+  firstCycleAt    DateTime?
+  lastCycleAt     DateTime?
+
+  updatedAt       DateTime   @updatedAt
+}
+
+model PushSubscription {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  endpoint    String
+  p256dh      String
+  auth        String
+  device      String?
+
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+
+  @@unique([userId, endpoint])
+}
+
+model NotificationLog {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  channel     String
+  event       String
+  title       String
+  body        String
+  data        String?
+
+  status      String    @default("PENDING")
+  sentAt      DateTime?
+  clickedAt   DateTime?
+  errorMsg    String?
+
+  createdAt   DateTime  @default(now())
+}

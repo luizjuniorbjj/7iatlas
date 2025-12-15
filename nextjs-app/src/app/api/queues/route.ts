@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { DEMO_MODE, DEMO_TOKEN, demoLevels, demoQuotas } from '@/lib/demo-data'
 
 function getTokenFromHeader(request: NextRequest): string | null {
   const authHeader = request.headers.get('authorization')
@@ -11,6 +12,34 @@ function getTokenFromHeader(request: NextRequest): string | null {
 export async function GET(request: NextRequest) {
   try {
     const token = getTokenFromHeader(request)
+
+    // Modo Demo
+    if (DEMO_MODE || token === DEMO_TOKEN) {
+      const queuesInfo = demoLevels.map((level) => {
+        const userQuota = demoQuotas.find(q => q.level === level.levelNumber)
+        const userEntry = userQuota?.quotas.find(q => q.status === 'WAITING')
+
+        return {
+          level: level.levelNumber,
+          entryValue: level.entryValue,
+          rewardValue: level.rewardValue,
+          bonusValue: level.bonusValue,
+          cashBalance: level.cashBalance,
+          totalCycles: level.totalCycles,
+          totalInQueue: level.totalUsers,
+          canProcess: level.totalUsers >= 7 && level.cashBalance >= level.entryValue * 7,
+          userPosition: userEntry ? Math.floor(Math.random() * 50) + 10 : null,
+          userScore: userEntry ? userEntry.score : null,
+          estimatedTime: userEntry ? `~${Math.floor(Math.random() * 24) + 1}h` : null,
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        data: queuesInfo,
+      })
+    }
+
     let userId: string | null = null
 
     if (token) {

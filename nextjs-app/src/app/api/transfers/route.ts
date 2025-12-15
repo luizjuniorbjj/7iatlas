@@ -6,12 +6,29 @@ import { verifyToken } from '@/lib/auth'
 import { transferService } from '@/services/transfer.service'
 import { notificationService } from '@/services/notification.service'
 import prisma from '@/lib/prisma'
+import { DEMO_MODE, DEMO_TOKEN, demoTransfers, demoStats } from '@/lib/demo-data'
 
 // GET /api/transfers - Histórico de transferências
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
     const token = authHeader?.replace('Bearer ', '')
+
+    // Modo Demo
+    if (DEMO_MODE || token === DEMO_TOKEN) {
+      return NextResponse.json({
+        history: demoTransfers,
+        limits: {
+          dailyLimit: 100,
+          dailyUsed: 20,
+          dailyRemaining: 80,
+          perTransactionLimit: 50,
+          minAmount: 10,
+          maxTransactionsPerDay: 3,
+          transactionsToday: 1,
+        }
+      })
+    }
 
     if (!token) {
       return NextResponse.json({ error: 'Token não fornecido' }, { status: 401 })

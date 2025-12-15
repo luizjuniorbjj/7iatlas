@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -10,8 +12,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState(DEMO_MODE ? 'demo@7iatlas.ai' : '')
+  const [password, setPassword] = useState(DEMO_MODE ? 'demo123' : '')
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -137,6 +139,14 @@ export default function LoginPage() {
               🦊 MetaMask
             </button>
           </div>
+
+          {/* Demo Mode Banner */}
+          {DEMO_MODE && (
+            <div className="mb-4 p-3 bg-cyan/20 border border-cyan/30 rounded-lg text-cyan text-sm">
+              <strong>Modo Demo Ativo</strong><br />
+              Email: demo@7iatlas.ai | Senha: demo123
+            </div>
+          )}
 
           {/* Error */}
           {error && (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { DEMO_MODE, demoUser, demoStats, DEMO_TOKEN } from '@/lib/demo-data'
 
 // Helper para extrair token do header
 function getTokenFromHeader(request: NextRequest): string | null {
@@ -12,6 +13,28 @@ function getTokenFromHeader(request: NextRequest): string | null {
 export async function GET(request: NextRequest) {
   try {
     const token = getTokenFromHeader(request)
+
+    // Modo Demo - retorna dados mock
+    if (DEMO_MODE || token === DEMO_TOKEN) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          user: {
+            id: demoUser.id,
+            email: demoUser.email,
+            walletAddress: demoUser.walletAddress,
+            name: demoUser.name,
+            referralCode: demoUser.referralCode,
+            status: demoUser.status,
+            currentLevel: demoUser.currentLevel,
+            createdAt: demoUser.createdAt,
+            activatedAt: demoUser.activatedAt,
+          },
+          stats: demoStats,
+          referrer: null,
+        },
+      })
+    }
 
     if (!token) {
       return NextResponse.json(

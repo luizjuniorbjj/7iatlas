@@ -1,11 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyPassword, generateTokens } from '@/lib/auth'
+import { DEMO_MODE, demoUser, DEMO_TOKEN } from '@/lib/demo-data'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { email, password } = body
+
+    // Modo Demo - aceita credenciais de demonstração
+    if (DEMO_MODE) {
+      if (email === 'demo@7iatlas.ai' && password === 'demo123') {
+        return NextResponse.json({
+          success: true,
+          data: {
+            user: {
+              id: demoUser.id,
+              email: demoUser.email,
+              walletAddress: demoUser.walletAddress,
+              name: demoUser.name,
+              referralCode: demoUser.referralCode,
+              status: demoUser.status,
+              currentLevel: demoUser.currentLevel,
+            },
+            accessToken: DEMO_TOKEN,
+            refreshToken: DEMO_TOKEN,
+          },
+        })
+      }
+    }
 
     // Validações
     if (!email || !password) {

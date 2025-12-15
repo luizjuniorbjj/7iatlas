@@ -4,12 +4,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { notificationService } from '@/services/notification.service'
+import { DEMO_MODE, DEMO_TOKEN, demoNotifications } from '@/lib/demo-data'
 
 // GET /api/notifications - Preferências e histórico
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
     const token = authHeader?.replace('Bearer ', '')
+
+    const { searchParams } = new URL(request.url)
+    const type = searchParams.get('type') || 'preferences'
+
+    // Modo Demo
+    if (DEMO_MODE || token === DEMO_TOKEN) {
+      if (type === 'history') {
+        return NextResponse.json({
+          history: demoNotifications.map(n => ({
+            ...n,
+            channel: 'PUSH',
+            status: n.read ? 'CLICKED' : 'SENT'
+          }))
+        })
+      }
+      return NextResponse.json({
+        preferences: {
+          notifyEmail: true,
+          notifyPush: true,
+          notifyOnQueueAdvance: true,
+          notifyOnCycle: true,
+          notifyOnBonus: true,
+          notifyOnTransfer: true,
+          notifyFrequency: 'realtime'
+        }
+      })
+    }
 
     if (!token) {
       return NextResponse.json({ error: 'Token não fornecido' }, { status: 401 })
@@ -19,9 +47,6 @@ export async function GET(request: NextRequest) {
     if (!decoded) {
       return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
-
-    const { searchParams } = new URL(request.url)
-    const type = searchParams.get('type') || 'preferences'
 
     if (type === 'history') {
       const limit = parseInt(searchParams.get('limit') || '50')

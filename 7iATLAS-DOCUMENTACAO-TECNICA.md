@@ -1,9 +1,9 @@
 # 7iATLAS - DOCUMENTAÇÃO TÉCNICA COMPLETA
 ## Sistema de Redistribuição Progressiva
 
-> **Versão:** 1.5
+> **Versão:** 1.6
 > **Data:** Dezembro 2025
-> **Atualização:** Implementação completa de todas as funcionalidades (Backend + Frontend)
+> **Atualização:** Adicionado Jupiter Pool e Reserva Interna
 > **Confidencial** - Documento para desenvolvimento interno
 
 ---
@@ -17,6 +17,7 @@
 5. [Integração Blockchain](#5-integração-blockchain)
 6. [Frontend](#6-frontend)
 7. [Regras de Negócio](#7-regras-de-negócio)
+   - 7.2.1 [Bônus de Indicação Variável](#721-bônus-de-indicação-variável)
    - 7.4 [Funcionalidades Avançadas](#74-funcionalidades-avançadas)
      - 7.4.1 [Múltiplas Cotas por Usuário](#741-múltiplas-cotas-por-usuário)
      - 7.4.2 [Compra em Níveis Superiores](#742-compra-de-cotas-em-níveis-superiores)
@@ -24,6 +25,8 @@
      - 7.4.4 [Transferência Interna de Saldo](#744-transferência-interna-de-saldo)
      - 7.4.5 [Sistema de Notificações](#745-sistema-de-notificações)
      - 7.4.6 [Visualização de Matriz e Posição na Fila](#746-visualização-de-matriz-e-posição-na-fila)
+     - 7.4.7 [Jupiter Pool (Sistema Anti-Travamento)](#747-jupiter-pool-sistema-anti-travamento)
+     - 7.4.8 [Reserva Interna (Fundo Privado)](#748-reserva-interna-fundo-privado)
 8. [Segurança](#8-segurança)
 9. [Deploy](#9-deploy)
 10. [Testes](#10-testes)
@@ -132,6 +135,47 @@ VALOR DA POSIÇÃO 5:
 └── 40% → LUCRO SISTEMA
 
 * Sem indicador = 40% bônus vai para lucro (total 80%)
+```
+
+### Regra Especial do NÍVEL 10 (CRÍTICO)
+
+```
+⚠️ NO NÍVEL 10, AS POSIÇÕES 2 E 4 TÊM COMPORTAMENTO DIFERENTE!
+
+NÍVEIS 1-9:
+├── Pos 2 (Avançar 1): $X → vai para caixa do N+1
+└── Pos 4 (Avançar 2): $X → vai para caixa do N+1
+
+NÍVEL 10:
+├── Pos 2 (Avançar 1): $5.120 → vai para RESERVA DO SISTEMA
+└── Pos 4 (Avançar 2): $5.120 → vai para RESERVA DO SISTEMA
+└── TOTAL: $10.240 por ciclo → RESERVA DO SISTEMA
+
+MOTIVO: Não existe Nível 11, então o dinheiro é redirecionado
+        para a Reserva do Sistema (fundo de sustentabilidade)
+```
+
+#### Exemplo Prático - Ciclo no Nível 10:
+
+```
+CAIXA N10: $35.840 (7 × $5.120)
+
+┌─────────┬─────────────────┬────────────┬─────────────────────────────────┐
+│ Posição │ Nome            │ Entrada    │ Destino                         │
+├─────────┼─────────────────┼────────────┼─────────────────────────────────┤
+│    0    │ RECEIVER        │  $5.120    │ RECEBE $10.240, entrada fica    │
+│    1    │ DOAR 1          │  $5.120    │ → RECEIVER                      │
+│    2    │ AVANÇAR 1       │  $5.120    │ → RESERVA SISTEMA (não há N11)  │
+│    3    │ DOAR 2          │  $5.120    │ → RECEIVER                      │
+│    4    │ AVANÇAR 2       │  $5.120    │ → RESERVA SISTEMA (não há N11)  │
+│    5    │ COMUNIDADE      │  $5.120    │ → Distribuído (10+10+40+40%)    │
+│    6    │ REENTRADA       │  $5.120    │ → Fica no caixa N10             │
+└─────────┴─────────────────┴────────────┴─────────────────────────────────┘
+
+RECEIVER no N10:
+├── NÃO avança para N+1 (não existe)
+├── REENTRA no N10 (ciclo perpétuo)
+└── Pode ciclar infinitamente no N10
 ```
 
 ## 2.2 Os 10 Níveis
@@ -685,28 +729,147 @@ def processar_ciclo(nivel):
     # Verificar
     if fila < 7: return ERRO
     if caixa < valor × 7: return ERRO
-    
+
     # Selecionar por score
     participantes = fila.ordenar_por_score()[:7]
-    
-    # Recebedor
-    pagar(recebedor, valor × 2)
+
+    # Recebedor (Posição 0)
+    ganho_bruto = valor × 2
+    jupiter_pool_taxa = ganho_bruto × 0.10  # 10% para Jupiter Pool
+    ganho_liquido = ganho_bruto - jupiter_pool_taxa
+    pagar(recebedor, ganho_liquido)
+    jupiter_pool += jupiter_pool_taxa
+
     if nivel < 10:
         adicionar_fila(recebedor, nivel + 1)
     adicionar_fila(recebedor, nivel)  # reentrada
-    
+
     # Posições 1-4: reentram
-    
-    # Posição 5: distribuir
-    reserva += valor × 0.10
-    operacional += valor × 0.10
-    if indicador:
-        pagar_bonus(indicador, valor × 0.40)
+
+    # Posição 5: distribuir com BÔNUS VARIÁVEL
+    reserva_interna += valor × 0.10    # 10% Reserva Interna (privado)
+    operacional += valor × 0.10         # 10% Operacional
+
+    # Calcular bônus variável baseado nos indicados do INDICADOR
+    indicados_ativos = contar_indicados_ativos(indicador)
+
+    if indicados_ativos >= 10:
+        bonus_percent = 0.40  # 40%
+    elif indicados_ativos >= 5:
+        bonus_percent = 0.20  # 20%
     else:
-        lucro += valor × 0.40
-    lucro += valor × 0.40
-    
+        bonus_percent = 0.00  # 0%
+
+    bonus_valor = valor × bonus_percent
+    lucro_bonus = valor × 0.40 - bonus_valor  # Restante do bônus vai para lucro
+
+    if bonus_valor > 0:
+        pagar_bonus(indicador, bonus_valor)
+
+    lucro += valor × 0.40 + lucro_bonus  # 40% fixo + bônus não pago
+
     # Posição 6: valor volta ao caixa
+```
+
+## 7.2.1 Bônus de Indicação Variável
+
+O bônus de indicação é **variável** baseado na quantidade de indicados ativos do indicador.
+
+### Faixas de Comissão
+
+```
+┌─────────────────┬─────────────────┬─────────────────────────────┐
+│ Indicados Ativos│ % de Comissão   │ Destino                     │
+├─────────────────┼─────────────────┼─────────────────────────────┤
+│     0 a 4       │      0%         │ 40% → LUCRO DO SISTEMA      │
+│     5 a 9       │     20%         │ 20% indicador, 20% lucro    │
+│    10 ou mais   │     40%         │ 40% indicador, 0% extra     │
+└─────────────────┴─────────────────┴─────────────────────────────┘
+
+REGRA: Se indicador tem 0-4 indicados, NÃO recebe bônus.
+       O valor que seria do bônus vai para LUCRO DO SISTEMA.
+```
+
+### Distribuição da Posição 5 (COMUNIDADE)
+
+```
+POSIÇÃO 5 = 100% do valor de entrada do nível
+
+SEMPRE FIXO (20%):
+├── 10% → Reserva Interna (privado)
+└── 10% → Operacional
+
+VARIÁVEL (80% - depende dos indicados do INDICADOR):
+
+┌─────────────────────────────────────────────────────────────────┐
+│ SE INDICADOR TEM 0-4 INDICADOS (0% bônus):                      │
+│ ├── Indicador: $0                                               │
+│ └── Lucro Sistema: 80% (40% bônus + 40% lucro)                 │
+├─────────────────────────────────────────────────────────────────┤
+│ SE INDICADOR TEM 5-9 INDICADOS (20% bônus):                     │
+│ ├── Indicador: 20%                                              │
+│ └── Lucro Sistema: 60% (20% restante bônus + 40% lucro)        │
+├─────────────────────────────────────────────────────────────────┤
+│ SE INDICADOR TEM 10+ INDICADOS (40% bônus):                     │
+│ ├── Indicador: 40%                                              │
+│ └── Lucro Sistema: 40%                                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Exemplo Prático (Nível 3 - Entrada $40)
+
+```
+Posição 5 recebe: $40
+
+FIXO:
+├── Reserva Interna: $4 (10%)
+├── Operacional: $4 (10%)
+└── Restante: $32 (80%)
+
+CENÁRIO A - Indicador tem 2 indicados (0%):
+├── Bônus Indicador: $0
+└── Lucro Sistema: $32
+
+CENÁRIO B - Indicador tem 7 indicados (20%):
+├── Bônus Indicador: $8 (20% de $40)
+└── Lucro Sistema: $24 (60% de $40)
+
+CENÁRIO C - Indicador tem 12 indicados (40%):
+├── Bônus Indicador: $16 (40% de $40)
+└── Lucro Sistema: $16 (40% de $40)
+```
+
+### Tabela de Bônus por Nível
+
+```
+┌────────┬──────────┬───────────────┬───────────────┬───────────────┐
+│ Nível  │ Pos 5    │ 0-4 ind (0%)  │ 5-9 ind (20%) │ 10+ ind (40%) │
+├────────┼──────────┼───────────────┼───────────────┼───────────────┤
+│   1    │   $10    │      $0       │      $2       │      $4       │
+│   2    │   $20    │      $0       │      $4       │      $8       │
+│   3    │   $40    │      $0       │      $8       │     $16       │
+│   4    │   $80    │      $0       │     $16       │     $32       │
+│   5    │  $160    │      $0       │     $32       │     $64       │
+│   6    │  $320    │      $0       │     $64       │    $128       │
+│   7    │  $640    │      $0       │    $128       │    $256       │
+│   8    │ $1.280   │      $0       │    $256       │    $512       │
+│   9    │ $2.560   │      $0       │    $512       │  $1.024       │
+│  10    │ $5.120   │      $0       │  $1.024       │  $2.048       │
+└────────┴──────────┴───────────────┴───────────────┴───────────────┘
+```
+
+### Incentivo do Sistema
+
+```
+OBJETIVO:
+├── Incentiva usuários a indicarem no mínimo 5 pessoas
+├── Recompensa maior para quem indica 10+
+└── Quem não indica, não ganha bônus (vai para o sistema)
+
+PROGRESSÃO:
+0 indicados  → 0%   (sem bônus - vai para lucro)
+5 indicados  → 20%  (começa a ganhar)
+10 indicados → 40%  (máximo possível)
 ```
 
 ## 7.3 Validações
@@ -757,21 +920,20 @@ Cada cota:
 ### Regras
 
 ```
-✅ SEM LIMITE de cotas por usuário
+✅ LIMITE MÁXIMO: 10 cotas por usuário por nível
 ✅ Cada cota é uma QueueEntry independente
 ✅ Cotas NÃO compartilham score
 ✅ Ao ciclar, cota avança para N+1 E reentra em N
-✅ Bônus de indicação: pago para cada cota que cicla
+✅ Bônus de indicação: pago quando cota cicla na posição 5,
+   DESDE QUE o indicador atenda os requisitos do bônus variável:
+   ├── 0-4 indicados: 0% (vai para lucro do sistema)
+   ├── 5-9 indicados: 20% de comissão
+   └── 10+ indicados: 40% de comissão
 
-⚠️ OBSERVAÇÃO IMPORTANTE:
-   Sem limite de cotas, usuários com maior capital podem
-   acumular muitas posições, potencialmente dominando filas.
-
-   RECOMENDAÇÕES DE MONITORAMENTO:
-   ├── Alertar quando usuário tiver >10 cotas no mesmo nível
-   ├── Dashboard admin para visualizar distribuição de cotas
-   ├── Relatórios de concentração por usuário
-   └── Possibilidade de implementar limite futuro se necessário
+⚠️ VALIDAÇÃO DE LIMITE:
+   ├── Sistema deve verificar antes de permitir compra
+   ├── Mensagem: "Limite máximo de 10 cotas por nível atingido"
+   └── Usuário pode ter 10 cotas em CADA nível (até 100 cotas total)
 ```
 
 ### Modelo de Dados
@@ -2561,6 +2723,366 @@ SMTP_PASS="..."
 
 ---
 
+## 7.4.7 Jupiter Pool (Sistema Anti-Travamento)
+
+O **Jupiter Pool** é um fundo de liquidez **PÚBLICO** que garante que o sistema nunca trave por falta de liquidez. É separado da Reserva Interna.
+
+### Conceito
+
+```
+DOIS FUNDOS SEPARADOS:
+
+┌─────────────────────────────────────────────────────────────────┐
+│  JUPITER POOL (PÚBLICO)                                         │
+│  ├── Fonte: 10% do GANHO DO RECEBEDOR (todos os níveis)        │
+│  ├── Visibilidade: PÚBLICO (usuários veem no dashboard)        │
+│  └── Uso: EXTREMA URGÊNCIA, de forma INTELIGENTE               │
+├─────────────────────────────────────────────────────────────────┤
+│  RESERVA INTERNA (PRIVADO)                                      │
+│  ├── Fonte: 10% da Posição 5 (COMUNIDADE)                      │
+│  ├── Visibilidade: PRIVADO (apenas admin)                      │
+│  └── Uso: EXTREMA NECESSIDADE (último recurso)                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Fonte de Recursos do Jupiter Pool
+
+```
+10% do GANHO DO RECEBEDOR (posição 0) em TODOS os níveis
+
+┌────────┬──────────────────┬─────────────────┬─────────────────┐
+│ Nível  │ Ganho Recebedor  │ Jupiter Pool    │ Recebe Líquido  │
+├────────┼──────────────────┼─────────────────┼─────────────────┤
+│   1    │      $20         │     $2 (10%)    │      $18        │
+│   2    │      $40         │     $4 (10%)    │      $36        │
+│   3    │      $80         │     $8 (10%)    │      $72        │
+│   4    │     $160         │    $16 (10%)    │     $144        │
+│   5    │     $320         │    $32 (10%)    │     $288        │
+│   6    │     $640         │    $64 (10%)    │     $576        │
+│   7    │   $1.280         │   $128 (10%)    │   $1.152        │
+│   8    │   $2.560         │   $256 (10%)    │   $2.304        │
+│   9    │   $5.120         │   $512 (10%)    │   $4.608        │
+│  10    │  $10.240         │ $1.024 (10%)    │   $9.216        │
+└────────┴──────────────────┴─────────────────┴─────────────────┘
+```
+
+### Critérios de Uso (Por Ordem de Prioridade)
+
+```
+QUANDO USAR O JUPITER POOL:
+
+1º PRIORIDADE: Filas que LIBERAM CASCATA
+   └── Destravar um nível que destrava outros níveis
+   └── Ex: N3 travado bloqueia avanço de N2 → priorizar N3
+
+2º PRIORIDADE: Tempo de espera (fila mais antiga)
+   └── Pessoas esperando há MAIS DE 10 DIAS
+   └── Fila mais antiga = maior prioridade
+
+3º PRIORIDADE: Ter pessoas esperando
+   └── Só injeta se tiver gente na fila aguardando
+```
+
+### Regras de Injeção
+
+```
+REGRAS DO JUPITER POOL:
+
+✅ QUANDO USAR:
+├── EXTREMA URGÊNCIA apenas
+├── Pessoas esperando há mais de 10 dias
+├── De forma INTELIGENTE (priorizar cascata)
+└── Quando realmente necessário
+
+✅ LIMITE DE USO:
+├── SEM LIMITE - usa TUDO se precisar
+└── SEM RESERVA MÍNIMA - pode zerar o pool
+
+✅ VISIBILIDADE:
+└── PÚBLICO - usuários veem saldo em tempo real
+```
+
+### Algoritmo de Priorização
+
+```python
+def calcular_prioridade_injecao(nivel):
+    prioridade = 0
+
+    # 1. Cascata: níveis que destravam outros
+    niveis_bloqueados = contar_niveis_esperando_avancar_para(nivel)
+    prioridade += niveis_bloqueados * 100  # Peso alto
+
+    # 2. Tempo de espera
+    dias_espera_max = max_dias_espera_na_fila(nivel)
+    if dias_espera_max > 10:
+        prioridade += dias_espera_max * 10
+
+    # 3. Pessoas esperando
+    pessoas_na_fila = contar_pessoas_na_fila(nivel)
+    prioridade += pessoas_na_fila * 1
+
+    return prioridade
+
+def deve_injetar(nivel):
+    # Só injeta se tiver pessoas esperando há mais de 10 dias
+    dias_espera_max = max_dias_espera_na_fila(nivel)
+    return dias_espera_max > 10 and contar_pessoas_na_fila(nivel) > 0
+```
+
+### Diferença: Jupiter Pool vs Reserva Interna
+
+| Aspecto | Jupiter Pool | Reserva Interna |
+|---------|--------------|-----------------|
+| **Fonte** | 10% do ganho do RECEBEDOR | 10% da Posição 5 |
+| **Visibilidade** | PÚBLICO | PRIVADO |
+| **Uso** | Extrema urgência | Extrema necessidade (último recurso) |
+| **Quem decide** | Algoritmo automático | Admin manual |
+| **Transparência** | Usuários veem saldo | Apenas admin |
+
+### Modelo de Dados
+
+```prisma
+// Adicionar ao enum TransactionType
+enum TransactionType {
+  // ... existentes
+  JUPITER_POOL_DEPOSIT       // Entrada: 10% do ganho do recebedor
+  JUPITER_POOL_WITHDRAWAL    // Saída: injeção em nível travado
+}
+
+// Tabela para tracking do Jupiter Pool
+model JupiterPoolTransaction {
+  id            String    @id @default(cuid())
+
+  type          String    // "DEPOSIT" ou "WITHDRAWAL"
+  amount        Decimal   @db.Decimal(18, 2)
+
+  // Para depósitos
+  cycleId       String?   // ID do ciclo que gerou
+  levelId       Int?      // Nível do ciclo
+
+  // Para saques (injeções)
+  targetLevelId Int?      // Nível que recebeu injeção
+  reason        String?   // "CASCADE_PRIORITY", "WAIT_TIME_EXCEEDED"
+
+  balanceAfter  Decimal   @db.Decimal(18, 2)  // Saldo após transação
+
+  createdAt     DateTime  @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+// Saldo atual do Jupiter Pool (cache)
+model JupiterPoolBalance {
+  id            Int       @id @default(1)
+  balance       Decimal   @default(0) @db.Decimal(18, 2)
+  totalDeposits Decimal   @default(0) @db.Decimal(18, 2)
+  totalWithdrawals Decimal @default(0) @db.Decimal(18, 2)
+  lastUpdated   DateTime  @updatedAt
+}
+```
+
+### API Endpoints
+
+```
+GET /api/jupiter-pool/balance
+→ Retorna saldo atual (PÚBLICO)
+{
+  "balance": 15420.50,
+  "totalDeposits": 25000.00,
+  "totalWithdrawals": 9579.50,
+  "todayDeposits": 320.00,
+  "todayWithdrawals": 70.00
+}
+
+GET /api/jupiter-pool/history
+→ Histórico de transações (PÚBLICO)
+{
+  "transactions": [
+    { "type": "DEPOSIT", "amount": 2.00, "level": 1, "createdAt": "..." },
+    { "type": "WITHDRAWAL", "amount": 50.00, "targetLevel": 3, "reason": "WAIT_TIME_EXCEEDED", "createdAt": "..." }
+  ]
+}
+
+GET /api/jupiter-pool/stats
+→ Estatísticas (PÚBLICO)
+{
+  "avgDailyDeposits": 320.00,
+  "avgDailyWithdrawals": 70.00,
+  "interventionsThisMonth": 12,
+  "levelsHelped": [3, 5, 7]
+}
+```
+
+### Interface do Dashboard
+
+```
+DASHBOARD > JUPITER POOL (Público)
+┌─────────────────────────────────────────────────────────────────┐
+│ 🪐 Jupiter Pool - Fundo de Liquidez                              │
+│ Saldo: $15,420.50                                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
+│  │  📈 Acumulado   │  │  💫 Injetado    │  │  🎯 Intervenções│  │
+│  │  $25,000        │  │  $9,579.50      │  │  127 este mês   │  │
+│  │  (total)        │  │  (total)        │  │                 │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
+│                                                                  │
+│  COMO FUNCIONA:                                                  │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ ① COLETA: 10% do ganho de cada Recebedor vai para o Pool   ││
+│  │ ② ACUMULA: O pool cresce com cada ciclo em todos os níveis ││
+│  │ ③ INJETA: Quando necessário, destrava filas paradas        ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                  │
+│  CRITÉRIOS DE USO:                                              │
+│  • Prioriza filas que liberam cascata (destravam outros níveis) │
+│  • Só usa quando pessoas esperam há mais de 10 dias             │
+│  • Usa de forma inteligente, apenas em extrema urgência         │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Fluxo de Coleta (a cada ciclo)
+
+```
+PROCESSAMENTO DE CICLO:
+
+1. Recebedor (posição 0) ganha 2× valor de entrada
+2. Sistema calcula 10% do ganho
+3. Deduz do pagamento ao recebedor
+4. Credita no Jupiter Pool
+5. Registra transação JUPITER_POOL_DEPOSIT
+
+EXEMPLO (Nível 3):
+├── Valor entrada: $40
+├── Ganho bruto: $80
+├── Jupiter Pool: $8 (10%)
+├── Ganho líquido: $72
+└── Jupiter Pool += $8
+```
+
+### Fluxo de Injeção (quando necessário)
+
+```
+VERIFICAÇÃO DE INJEÇÃO (executar periodicamente):
+
+1. Para cada nível, verificar:
+   ├── Tem pessoas na fila?
+   ├── Alguém espera há mais de 10 dias?
+   └── Liberaria cascata?
+
+2. Calcular prioridade de cada nível elegível
+
+3. Ordenar por prioridade (maior primeiro)
+
+4. Para o nível mais prioritário:
+   ├── Calcular quanto precisa para destravar
+   ├── Se Jupiter Pool tem saldo suficiente:
+   │   ├── Injetar no caixa do nível
+   │   ├── Registrar JUPITER_POOL_WITHDRAWAL
+   │   └── Processar ciclos desbloqueados
+   └── Se não tem saldo: aguardar acumulação
+
+5. Repetir até não haver mais níveis elegíveis
+   ou Jupiter Pool zerar
+```
+
+### Simulação de Acumulação
+
+```
+CENÁRIO: 1.000 ciclos/dia distribuídos nos níveis
+
+Distribuição estimada:
+├── N1: 500 ciclos × $2 = $1.000/dia
+├── N2: 200 ciclos × $4 = $800/dia
+├── N3: 100 ciclos × $8 = $800/dia
+├── N4: 80 ciclos × $16 = $1.280/dia
+├── N5: 50 ciclos × $32 = $1.600/dia
+├── N6: 30 ciclos × $64 = $1.920/dia
+├── N7: 20 ciclos × $128 = $2.560/dia
+├── N8: 10 ciclos × $256 = $2.560/dia
+├── N9: 7 ciclos × $512 = $3.584/dia
+├── N10: 3 ciclos × $1.024 = $3.072/dia
+└── TOTAL: ~$19.176/dia acumulados no Jupiter Pool
+
+Em 30 dias: ~$575.000 acumulados (se nenhuma injeção)
+```
+
+### Benefícios do Sistema
+
+```
+PARA O USUÁRIO:
+├── Transparência total (vê o saldo do pool)
+├── Confiança (sabe que existe proteção)
+├── Filas não travam indefinidamente
+└── Sistema justo (prioriza quem espera mais)
+
+PARA O SISTEMA:
+├── Anti-travamento automático
+├── Sustentabilidade de longo prazo
+├── Credibilidade e confiança
+└── Reduz reclamações de suporte
+```
+
+---
+
+## 7.4.8 Reserva Interna (Fundo Privado)
+
+A **Reserva Interna** é um fundo **PRIVADO** separado do Jupiter Pool, usado apenas em **extrema necessidade** como último recurso.
+
+### Conceito
+
+```
+RESERVA INTERNA:
+├── Fonte: 10% da Posição 5 (COMUNIDADE)
+├── Visibilidade: PRIVADO (apenas admin)
+├── Uso: EXTREMA NECESSIDADE (último recurso)
+└── Decisão: Manual pelo administrador
+```
+
+### Quando Usar
+
+```
+A Reserva Interna só deve ser usada quando:
+
+1. Jupiter Pool está ZERADO
+2. E ainda há filas travadas há muito tempo
+3. E não há previsão de recuperação natural
+4. Decisão manual do administrador
+
+É o ÚLTIMO RECURSO do sistema.
+```
+
+### Diferença Prática
+
+```
+EXEMPLO DE CRISE:
+
+Dia 1-30: Sistema normal
+├── Jupiter Pool acumula recursos
+└── Reserva Interna acumula recursos
+
+Dia 31-60: Crise (poucos novos usuários)
+├── Filas começam a travar
+├── Jupiter Pool começa a injetar (automaticamente)
+└── Reserva Interna não é tocada
+
+Dia 61-90: Crise severa
+├── Jupiter Pool ZERA
+├── Filas ainda travadas
+├── Admin avalia situação
+└── Admin decide usar Reserva Interna (manual)
+
+Dia 91+: Recuperação
+├── Novos usuários entram
+├── Jupiter Pool volta a acumular
+└── Reserva Interna volta a acumular
+```
+
+---
+
 **Documento completo para desenvolvimento.**
 
 **Arquivos de referência disponíveis:**
@@ -2569,14 +3091,16 @@ SMTP_PASS="..."
 - Projeto Next.js: `/7iatlas-nextjs.zip`
 - Testes: `/teste_completo_7iatlas.py`
 
-**Status da Implementação: ✅ COMPLETO**
+**Status da Implementação:**
 
-Todas as funcionalidades documentadas (7.4.1 a 7.4.6) foram implementadas:
+Funcionalidades documentadas (7.4.1 a 7.4.8):
 - ✅ Múltiplas cotas por usuário
 - ✅ Compra em níveis superiores
 - ✅ Transferência interna com PIN
 - ✅ Sistema de notificações (email + push)
 - ✅ Visualização de matriz e posição na fila
 - ✅ Frontend completo com todas as páginas
+- ⏳ Jupiter Pool (documentado, aguardando implementação backend)
+- ⏳ Reserva Interna (documentado, aguardando implementação backend)
 
 *Atualizado: Dezembro 2025*

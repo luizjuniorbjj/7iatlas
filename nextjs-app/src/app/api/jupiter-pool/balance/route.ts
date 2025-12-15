@@ -2,10 +2,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { DEMO_MODE, DEMO_TOKEN, demoJupiterPool } from '@/lib/demo-data'
 
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '')
+
+    // Modo Demo
+    if (DEMO_MODE || token === DEMO_TOKEN) {
+      return NextResponse.json({
+        success: true,
+        data: demoJupiterPool
+      })
+    }
 
     if (!token) {
       return NextResponse.json(

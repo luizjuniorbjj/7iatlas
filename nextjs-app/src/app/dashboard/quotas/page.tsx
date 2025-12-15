@@ -22,7 +22,8 @@ export default function QuotasPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const levelValues = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]
+  // Valores corretos: 10 * 2^(n-1) conforme documentação
+  const levelValues = [10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120]
 
   const fetchData = async () => {
     try {

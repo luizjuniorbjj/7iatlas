@@ -2,10 +2,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { DEMO_MODE, DEMO_TOKEN, demoUser, demoReferrals, getDemoBonusTier } from '@/lib/demo-data'
 
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '')
+
+    // Modo Demo
+    if (DEMO_MODE || token === DEMO_TOKEN) {
+      const activeRefs = demoReferrals.filter(r => r.status === 'ACTIVE')
+      const pendingRefs = demoReferrals.filter(r => r.status === 'PENDING')
+      const totalBonus = demoReferrals.reduce((sum, r) => sum + r.totalBonus, 0)
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          referralCode: demoUser.referralCode,
+          referralLink: `https://7iatlas.ai/ref/${demoUser.referralCode}`,
+          stats: {
+            total: demoReferrals.length,
+            active: activeRefs.length,
+            pending: pendingRefs.length,
+            totalBonus
+          },
+          bonusTier: getDemoBonusTier(activeRefs.length),
+          referrals: demoReferrals,
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: demoReferrals.length,
+            totalPages: 1
+          }
+        }
+      })
+    }
 
     if (!token) {
       return NextResponse.json(
