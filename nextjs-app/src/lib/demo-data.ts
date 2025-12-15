@@ -7,8 +7,8 @@ export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
 export const demoUser = {
   id: 'demo-user-001',
   email: 'demo@7iatlas.ai',
-  walletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f8fE00',
-  name: 'Usuário Demo',
+  walletAddress: '0x75d1a8ac59003088c60a20bde8953cbecfe41669',
+  name: 'Luiz Paulo',
   referralCode: 'DEMO7I',
   status: 'ACTIVE' as const,
   currentLevel: 3,

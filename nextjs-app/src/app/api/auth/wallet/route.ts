@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyWalletSignature, generateTokens } from '@/lib/auth'
 import { blockchainService } from '@/services/blockchain.service'
+import { DEMO_MODE, demoUser, DEMO_TOKEN } from '@/lib/demo-data'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +15,26 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Dados de autenticação incompletos' },
         { status: 400 }
       )
+    }
+
+    // Modo Demo - aceita login por wallet sem validação de assinatura
+    if (DEMO_MODE && walletAddress.toLowerCase() === demoUser.walletAddress.toLowerCase()) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          user: {
+            id: demoUser.id,
+            email: demoUser.email,
+            walletAddress: demoUser.walletAddress,
+            name: demoUser.name,
+            referralCode: demoUser.referralCode,
+            status: demoUser.status,
+            currentLevel: demoUser.currentLevel,
+          },
+          accessToken: DEMO_TOKEN,
+          refreshToken: DEMO_TOKEN,
+        },
+      })
     }
 
     if (!blockchainService.isValidAddress(walletAddress)) {
