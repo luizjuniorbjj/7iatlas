@@ -13,7 +13,9 @@
       "Bash(docker:*)",
       "Bash(npm run dev:*)",
       "Bash(curl:*)",
-      "Bash(DEMO_TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZW1vLXVzZXItMDAxIiwiZW1haWwiOiJkZW1vQDdpYXRsYXMuYWkiLCJpYXQiOjE3MDI0MjQ4MDAsImV4cCI6MTc5OTAyNDgwMH0.demo_signature_for_testing_purposes_only\":*)"
+      "Bash(DEMO_TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZW1vLXVzZXItMDAxIiwiZW1haWwiOiJkZW1vQDdpYXRsYXMuYWkiLCJpYXQiOjE3MDI0MjQ4MDAsImV4cCI6MTc5OTAyNDgwMH0.demo_signature_for_testing_purposes_only\":*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

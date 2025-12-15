@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
@@ -111,9 +112,15 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md">
         <div className="glass-card p-8 text-center">
           {/* Logo */}
-          <h1 className="font-orbitron text-4xl font-bold gradient-text mb-2">
-            7iATLAS
-          </h1>
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/logo.png"
+              alt="7iATLAS"
+              width={200}
+              height={67}
+              priority
+            />
+          </div>
           <p className="text-text-secondary mb-6">Entre na sua conta</p>
 
           {/* Tabs */}
