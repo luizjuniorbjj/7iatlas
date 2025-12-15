@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -121,9 +121,10 @@ export default function LoginPage() {
               priority
             />
           </div>
-          <p className="text-text-secondary mb-6">Entre na sua conta</p>
+          <h1 className="font-orbitron text-xl font-bold mb-1">Bem-vindo de volta</h1>
+          <p className="text-text-secondary mb-6">Entre na sua conta para continuar</p>
 
-          {/* Tabs */}
+          {/* Tabs - Apenas Email e MetaMask */}
           <div className="flex gap-2 mb-6 bg-white/5 p-1 rounded-xl">
             <button
               className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
@@ -133,7 +134,7 @@ export default function LoginPage() {
               }`}
               onClick={() => setActiveTab('email')}
             >
-              📧 Email
+              🔑 Entrar
             </button>
             <button
               className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
@@ -217,11 +218,11 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Footer */}
+          {/* Footer - Recuperação de senha */}
           <div className="mt-6 text-sm text-text-muted">
-            Não tem conta?{' '}
-            <Link href="/auth/register" className="text-pink-star hover:underline">
-              Criar conta
+            Esqueceu a senha?{' '}
+            <Link href="/auth/forgot-password" className="text-pink-star hover:underline">
+              Clique aqui
             </Link>
           </div>
         </div>
