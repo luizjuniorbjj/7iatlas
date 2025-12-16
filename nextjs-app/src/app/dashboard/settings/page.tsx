@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
+import { ASSETS } from '@/constants/assets'
 
 interface UserData {
   id: string
@@ -162,7 +164,14 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="font-orbitron text-4xl gradient-text animate-pulse">7iATLAS</div>
+          <Image
+            src={ASSETS.LOGO}
+            alt={ASSETS.APP_NAME}
+            width={200}
+            height={80}
+            priority
+            className="mx-auto animate-pulse"
+          />
           <p className="text-text-secondary mt-4">Carregando...</p>
         </div>
       </div>

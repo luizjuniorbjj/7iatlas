@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import Image from 'next/image'
+import { ASSETS } from '@/constants/assets'
 
 export default function Home() {
   return (
@@ -9,10 +11,18 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(47,0,255,0.15)_0%,transparent_70%)]" />
 
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          {/* Logo */}
-          <div className="mb-8">
-            <h1 className="font-orbitron text-6xl md:text-8xl font-black gradient-text animate-pulse-glow">
-              7iATLAS
+          {/* Logo Oficial */}
+          <div className="mb-8 flex flex-col items-center">
+            <Image
+              src={ASSETS.LOGO}
+              alt={ASSETS.APP_NAME}
+              width={200}
+              height={80}
+              priority
+              className="mb-4"
+            />
+            <h1 className="font-orbitron text-4xl md:text-5xl font-black text-white">
+              ATLAS
             </h1>
           </div>
 

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { LEVEL_CONFIG } from '@/constants/levels'
+import { ASSETS } from '@/constants/assets'
 
 interface LevelData {
   levelNumber: number
@@ -145,8 +147,14 @@ export default function MatrixPage() {
     <div className="min-h-screen flex">
       {/* Sidebar */}
       <aside className="w-64 bg-[#0d0d14] border-r border-white/10 p-6 flex flex-col">
-        <Link href="/dashboard" className="font-orbitron text-2xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-8">
-          7iATLAS
+        <Link href="/dashboard" className="mb-8">
+          <Image
+            src={ASSETS.LOGO}
+            alt={ASSETS.APP_NAME}
+            width={150}
+            height={60}
+            priority
+          />
         </Link>
 
         <nav className="flex-1 space-y-2">

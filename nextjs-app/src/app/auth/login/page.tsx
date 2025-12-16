@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { ASSETS } from '@/constants/assets'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -108,10 +110,16 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-md">
         <div className="glass-card p-8 text-center">
-          {/* Logo */}
-          <h1 className="font-orbitron text-4xl font-bold gradient-text mb-2">
-            7iATLAS
-          </h1>
+          {/* Logo Oficial */}
+          <div className="flex justify-center mb-4">
+            <Image
+              src={ASSETS.LOGO}
+              alt={ASSETS.APP_NAME}
+              width={120}
+              height={48}
+              priority
+            />
+          </div>
           <p className="text-text-secondary mb-6">Entre na sua conta</p>
 
           {/* Tabs */}
