@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { LEVEL_CONFIG } from '@/constants/levels'
 
 interface LevelStats {
   level: number
@@ -19,8 +20,9 @@ export default function LevelStatsCard({ level }: LevelStatsCardProps) {
   const [stats, setStats] = useState<LevelStats | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const levelValues = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]
-  const receiveValues = levelValues.map((v) => v * 6 * 0.85) // 85% de 6 doadores
+  // Valores conforme documentacao 7iATLAS-DOCUMENTACAO-TECNICA.md
+  const levelValues = LEVEL_CONFIG.ENTRY_VALUES
+  const receiveValues = LEVEL_CONFIG.REWARD_VALUES
 
   useEffect(() => {
     const fetchStats = async () => {

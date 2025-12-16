@@ -120,12 +120,18 @@ export default function DashboardPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.quotas) {
+          // data.quotas é um objeto agrupado por nível: { 1: [...], 2: [...] }
           const levelCounts: Record<number, number> = {}
-          data.quotas.forEach((q: any) => {
-            levelCounts[q.level] = (levelCounts[q.level] || 0) + 1
+          let totalQuotas = 0
+
+          Object.entries(data.quotas).forEach(([level, quotas]: [string, any]) => {
+            const count = Array.isArray(quotas) ? quotas.length : 0
+            levelCounts[parseInt(level)] = count
+            totalQuotas += count
           })
+
           setQuotaSummary({
-            totalQuotas: data.quotas.length,
+            totalQuotas,
             levels: Object.entries(levelCounts).map(([level, count]) => ({
               level: parseInt(level),
               count: count as number,

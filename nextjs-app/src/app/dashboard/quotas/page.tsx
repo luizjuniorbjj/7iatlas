@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import QuotaCard from '@/components/quotas/QuotaCard'
 import QuotaList from '@/components/quotas/QuotaList'
+import { LEVEL_CONFIG } from '@/constants/levels'
 
 interface QuotaInfo {
   level: number
@@ -22,7 +23,8 @@ export default function QuotasPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const levelValues = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]
+  // Valores conforme documentacao 7iATLAS-DOCUMENTACAO-TECNICA.md
+  const levelValues = LEVEL_CONFIG.ENTRY_VALUES
 
   const fetchData = async () => {
     try {

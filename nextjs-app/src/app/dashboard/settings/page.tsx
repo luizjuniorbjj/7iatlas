@@ -74,7 +74,7 @@ export default function SettingsPage() {
 
     try {
       const res = await fetch('/api/users/me', {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { LEVEL_CONFIG } from '@/constants/levels'
 
 interface Position {
   level: number
@@ -74,8 +75,8 @@ export default function PositionCard({ level, showDetails = true }: PositionCard
     )
   }
 
-  const levelValues = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]
-  const entryValue = levelValues[level - 1] || 0
+  // Valores conforme documentacao 7iATLAS-DOCUMENTACAO-TECNICA.md
+  const entryValue = LEVEL_CONFIG.ENTRY_VALUES[level - 1] || 0
 
   return (
     <div className="glass-card p-4">

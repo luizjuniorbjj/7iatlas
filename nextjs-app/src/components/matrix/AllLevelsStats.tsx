@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { LEVEL_CONFIG } from '@/constants/levels'
 
 interface LevelStat {
   level: number
@@ -21,7 +22,8 @@ export default function AllLevelsStats() {
   const [totals, setTotals] = useState<Totals | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const levelValues = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]
+  // Valores conforme documentacao 7iATLAS-DOCUMENTACAO-TECNICA.md
+  const levelValues = LEVEL_CONFIG.ENTRY_VALUES
 
   useEffect(() => {
     const fetchStats = async () => {

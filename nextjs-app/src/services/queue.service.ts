@@ -24,6 +24,7 @@ interface LevelStatsData {
   levelNumber: number
   entryValue: number
   rewardValue: number
+  cashBalance: number
   totalCycles: number
   cyclesToday: number
   avgCyclesPerDay: number
@@ -219,6 +220,7 @@ export async function getLevelStats(levelNumber: number): Promise<LevelStatsData
       levelNumber: level.levelNumber,
       entryValue: level.entryValue.toNumber(),
       rewardValue: level.rewardValue.toNumber(),
+      cashBalance: level.cashBalance.toNumber(),
       totalCycles: level.stats.totalCycles,
       cyclesToday: level.stats.cyclesToday,
       avgCyclesPerDay: level.stats.avgCyclesPerDay.toNumber(),
@@ -340,6 +342,7 @@ export async function calculateLevelStats(levelNumber: number): Promise<LevelSta
     levelNumber: level.levelNumber,
     entryValue: level.entryValue.toNumber(),
     rewardValue: level.rewardValue.toNumber(),
+    cashBalance: level.cashBalance.toNumber(),
     totalCycles,
     cyclesToday,
     avgCyclesPerDay,

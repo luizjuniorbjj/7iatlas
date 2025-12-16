@@ -10,7 +10,9 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "db:seed:test": "ts-node prisma/seed-test.ts",
+    "db:reset": "prisma db push --force-reset && npm run db:seed:test"
   },
   "dependencies": {
     "next": "14.0.4",
@@ -37,6 +39,7 @@
     "postcss": "^8.4.32",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.55.0",
-    "eslint-config-next": "14.0.4"
+    "eslint-config-next": "14.0.4",
+    "ts-node": "^10.9.2"
   }
 }

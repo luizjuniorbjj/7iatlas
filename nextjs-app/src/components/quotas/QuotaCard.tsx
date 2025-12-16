@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { LEVEL_CONFIG } from '@/constants/levels'
 
 interface QuotaCardProps {
   level: number
@@ -19,11 +19,9 @@ export default function QuotaCard({
   onPurchase,
   loading,
 }: QuotaCardProps) {
-  const levelValues = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]
-  const receiveValues = levelValues.map((v) => v * 6 * 0.85)
-
-  const entryValue = levelValues[level - 1]
-  const receiveValue = receiveValues[level - 1]
+  // Valores conforme documentacao 7iATLAS-DOCUMENTACAO-TECNICA.md
+  const entryValue = LEVEL_CONFIG.ENTRY_VALUES[level - 1]
+  const receiveValue = LEVEL_CONFIG.REWARD_VALUES[level - 1]
   const profit = receiveValue - entryValue
 
   return (
