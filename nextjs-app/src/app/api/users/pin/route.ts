@@ -1,81 +1,121 @@
-// 7iATLAS - API de PIN
-// Endpoints para gerenciamento do PIN de segurança
+// 7iATLAS - API de PIN de Segurança
+// POST /api/users/pin - Definir/alterar PIN
+// GET /api/users/pin - Verificar se tem PIN definido
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
-import { transferService } from '@/services/transfer.service'
+import * as bcrypt from 'bcryptjs'
 
-// GET /api/users/pin - Verifica se tem PIN configurado
-export async function GET(request: NextRequest) {
+// GET - Verificar se usuário tem PIN definido
+export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '')
+    const token = request.headers.get('authorization')?.replace('Bearer ', '')
 
     if (!token) {
       return NextResponse.json({ error: 'Token não fornecido' }, { status: 401 })
     }
 
-    const decoded = verifyToken(token)
-    if (!decoded) {
+    const payload = await verifyToken(token)
+    if (!payload) {
       return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
 
-    const hasPin = await transferService.hasPin(decoded.userId)
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        pinHash: true,
+        pinBlockedUntil: true,
+        pinAttempts: true,
+      },
+    })
 
-    return NextResponse.json({ hasPin })
-  } catch (error: any) {
+    if (!user) {
+      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
+    }
+
+    // Verificar se está bloqueado
+    const isBlocked = user.pinBlockedUntil && new Date(user.pinBlockedUntil) > new Date()
+
+    return NextResponse.json({
+      hasPin: !!user.pinHash,
+      isBlocked,
+      blockedUntil: isBlocked ? user.pinBlockedUntil : null,
+      attempts: user.pinAttempts,
+    })
+  } catch (error) {
     console.error('Erro ao verificar PIN:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
-// POST /api/users/pin - Cria ou altera PIN
-export async function POST(request: NextRequest) {
+// POST - Definir ou alterar PIN
+export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '')
+    const token = request.headers.get('authorization')?.replace('Bearer ', '')
 
     if (!token) {
       return NextResponse.json({ error: 'Token não fornecido' }, { status: 401 })
     }
 
-    const decoded = verifyToken(token)
-    if (!decoded) {
+    const payload = await verifyToken(token)
+    if (!payload) {
       return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
 
     const body = await request.json()
-    const { password, pin, confirmPin, action } = body
+    const { pin, currentPin } = body
 
-    if (!password) {
-      return NextResponse.json({ error: 'Senha é obrigatória' }, { status: 400 })
+    // Validar PIN (4-6 dígitos)
+    if (!pin || !/^\d{4,6}$/.test(pin)) {
+      return NextResponse.json({
+        error: 'PIN deve ter entre 4 e 6 dígitos numéricos'
+      }, { status: 400 })
     }
 
-    if (!pin) {
-      return NextResponse.json({ error: 'PIN é obrigatório' }, { status: 400 })
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { pinHash: true },
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
     }
 
-    if (pin !== confirmPin) {
-      return NextResponse.json({ error: 'PINs não conferem' }, { status: 400 })
+    // Se já tem PIN, precisa informar o atual para alterar
+    if (user.pinHash) {
+      if (!currentPin) {
+        return NextResponse.json({
+          error: 'Informe o PIN atual para alterá-lo'
+        }, { status: 400 })
+      }
+
+      const isValidCurrentPin = await bcrypt.compare(currentPin, user.pinHash)
+      if (!isValidCurrentPin) {
+        return NextResponse.json({
+          error: 'PIN atual incorreto'
+        }, { status: 400 })
+      }
     }
 
-    let result
-    if (action === 'change') {
-      result = await transferService.changePin(decoded.userId, password, pin)
-    } else {
-      result = await transferService.createPin(decoded.userId, password, pin)
-    }
+    // Hash do novo PIN
+    const pinHash = await bcrypt.hash(pin, 10)
 
-    if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 })
-    }
+    await prisma.user.update({
+      where: { id: payload.userId },
+      data: {
+        pinHash,
+        pinAttempts: 0,
+        pinBlockedUntil: null,
+      },
+    })
 
     return NextResponse.json({
       success: true,
-      message: action === 'change' ? 'PIN alterado com sucesso' : 'PIN criado com sucesso',
+      message: user.pinHash ? 'PIN alterado com sucesso' : 'PIN definido com sucesso',
     })
-  } catch (error: any) {
-    console.error('Erro ao gerenciar PIN:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    console.error('Erro ao definir PIN:', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

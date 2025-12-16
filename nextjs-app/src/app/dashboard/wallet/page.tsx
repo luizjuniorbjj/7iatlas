@@ -80,6 +80,15 @@ export default function WalletPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
+  // Estados para PIN
+  const [showPinModal, setShowPinModal] = useState(false)
+  const [pin, setPin] = useState('')
+  const [pinError, setPinError] = useState('')
+  const [hasPin, setHasPin] = useState(false)
+  const [showSetupPin, setShowSetupPin] = useState(false)
+  const [newPin, setNewPin] = useState('')
+  const [confirmPin, setConfirmPin] = useState('')
+
   // Buscar dados
   const fetchData = async () => {
     try {
@@ -110,6 +119,11 @@ export default function WalletPage() {
       const quotasRes = await fetch('/api/quotas/purchase', { headers })
       const quotasData = await quotasRes.json()
       if (!quotasData.error) setLevelsAvailability(quotasData.levels || [])
+
+      // Verificar se tem PIN
+      const pinRes = await fetch('/api/users/pin', { headers })
+      const pinData = await pinRes.json()
+      if (!pinData.error) setHasPin(pinData.hasPin)
 
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
@@ -208,13 +222,100 @@ export default function WalletPage() {
     }
   }
 
-  const handleTransfer = async () => {
+  // Abre modal de PIN para confirmar transferência
+  const initiateTransfer = () => {
     if (!transferAmount || !transferTo || parseFloat(transferAmount) <= 0) return
+
+    // Verificar se tem PIN configurado
+    if (!hasPin) {
+      setShowSetupPin(true)
+      return
+    }
+
+    // Abrir modal de PIN
+    setPin('')
+    setPinError('')
+    setShowPinModal(true)
+  }
+
+  // Criar PIN pela primeira vez
+  const handleSetupPin = async () => {
+    if (newPin.length < 4 || newPin.length > 6) {
+      setPinError('PIN deve ter entre 4 e 6 dígitos')
+      return
+    }
+    if (newPin !== confirmPin) {
+      setPinError('PINs não conferem')
+      return
+    }
+
     setActionLoading(true)
-    setMessage(null)
+    try {
+      const token = localStorage.getItem('accessToken')
+      const res = await fetch('/api/users/pin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ pin: newPin }),
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setHasPin(true)
+        setShowSetupPin(false)
+        setNewPin('')
+        setConfirmPin('')
+        setMessage({ type: 'success', text: 'PIN configurado com sucesso! Agora confirme a transferência.' })
+        // Abrir modal de PIN para confirmar
+        setPin('')
+        setPinError('')
+        setShowPinModal(true)
+      } else {
+        setPinError(data.error)
+      }
+    } catch {
+      setPinError('Erro ao configurar PIN')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Verificar PIN e executar transferência
+  const handleTransfer = async () => {
+    if (!pin) {
+      setPinError('Digite seu PIN')
+      return
+    }
+
+    setActionLoading(true)
+    setPinError('')
 
     try {
       const token = localStorage.getItem('accessToken')
+
+      // Primeiro verificar o PIN
+      const pinRes = await fetch('/api/users/pin/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ pin }),
+      })
+      const pinData = await pinRes.json()
+
+      if (!pinData.success) {
+        setPinError(pinData.error || 'PIN incorreto')
+        if (pinData.attemptsRemaining !== undefined) {
+          setPinError(`PIN incorreto. ${pinData.attemptsRemaining} tentativas restantes.`)
+        }
+        setActionLoading(false)
+        return
+      }
+
+      // PIN correto, executar transferência
       const res = await fetch('/api/transfers', {
         method: 'POST',
         headers: {
@@ -229,6 +330,8 @@ export default function WalletPage() {
       const data = await res.json()
 
       if (data.success) {
+        setShowPinModal(false)
+        setPin('')
         setMessage({ type: 'success', text: `Transferência de $${transferAmount} realizada!` })
         setTransferAmount('')
         setTransferTo('')
@@ -236,9 +339,11 @@ export default function WalletPage() {
         fetchData()
       } else {
         setMessage({ type: 'error', text: data.error })
+        setShowPinModal(false)
       }
     } catch {
       setMessage({ type: 'error', text: 'Erro ao processar transferência' })
+      setShowPinModal(false)
     } finally {
       setActionLoading(false)
     }
@@ -674,12 +779,18 @@ export default function WalletPage() {
                     )}
 
                     <button
-                      onClick={handleTransfer}
+                      onClick={initiateTransfer}
                       disabled={actionLoading || !transferTo || !transferAmount || parseFloat(transferAmount) > (summary?.balance || 0)}
                       className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg font-bold text-white transition-colors"
                     >
                       {actionLoading ? 'Processando...' : 'Confirmar Transferência'}
                     </button>
+
+                    {!hasPin && (
+                      <p className="text-yellow-400 text-xs text-center mt-2">
+                        🔐 Você precisará criar um PIN de segurança para confirmar transferências
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -783,6 +894,115 @@ export default function WalletPage() {
 
             </div>
           </>
+        )}
+
+        {/* Modal de PIN para confirmar transferência */}
+        {showPinModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+            <div className="bg-[#1a1a2e] border border-purple-500/30 rounded-xl p-6 w-full max-w-sm mx-4">
+              <h3 className="font-orbitron text-lg text-white mb-2 text-center">🔐 Confirmar com PIN</h3>
+              <p className="text-gray-400 text-sm text-center mb-4">
+                Digite seu PIN para confirmar a transferência de <span className="text-white font-bold">${transferAmount}</span>
+              </p>
+
+              <div className="mb-4">
+                <input
+                  type="password"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="Digite seu PIN"
+                  maxLength={6}
+                  className="w-full px-4 py-3 bg-black/30 border border-white/20 rounded-lg text-white text-center text-2xl tracking-widest placeholder-gray-500"
+                  autoFocus
+                />
+                {pinError && (
+                  <p className="text-red-400 text-sm text-center mt-2">{pinError}</p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowPinModal(false)
+                    setPin('')
+                    setPinError('')
+                  }}
+                  className="flex-1 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium text-white transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleTransfer}
+                  disabled={actionLoading || pin.length < 4}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg font-medium text-white transition-colors"
+                >
+                  {actionLoading ? 'Verificando...' : 'Confirmar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal para criar PIN */}
+        {showSetupPin && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+            <div className="bg-[#1a1a2e] border border-purple-500/30 rounded-xl p-6 w-full max-w-sm mx-4">
+              <h3 className="font-orbitron text-lg text-white mb-2 text-center">🔐 Criar PIN de Segurança</h3>
+              <p className="text-gray-400 text-sm text-center mb-4">
+                Configure um PIN de 4 a 6 dígitos para proteger suas transferências
+              </p>
+
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="block text-gray-400 text-xs mb-1">Novo PIN</label>
+                  <input
+                    type="password"
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Digite seu PIN"
+                    maxLength={6}
+                    className="w-full px-4 py-3 bg-black/30 border border-white/20 rounded-lg text-white text-center text-xl tracking-widest placeholder-gray-500"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-xs mb-1">Confirmar PIN</label>
+                  <input
+                    type="password"
+                    value={confirmPin}
+                    onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Confirme seu PIN"
+                    maxLength={6}
+                    className="w-full px-4 py-3 bg-black/30 border border-white/20 rounded-lg text-white text-center text-xl tracking-widest placeholder-gray-500"
+                  />
+                </div>
+                {pinError && (
+                  <p className="text-red-400 text-sm text-center">{pinError}</p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowSetupPin(false)
+                    setNewPin('')
+                    setConfirmPin('')
+                    setPinError('')
+                  }}
+                  className="flex-1 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium text-white transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSetupPin}
+                  disabled={actionLoading || newPin.length < 4}
+                  className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg font-medium text-white transition-colors"
+                >
+                  {actionLoading ? 'Criando...' : 'Criar PIN'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>
