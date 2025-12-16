@@ -139,7 +139,7 @@ export default function QuotaList() {
                         </div>
                         <div>
                           <div className="font-orbitron font-bold text-gold">
-                            Score: {quota.score?.toFixed(1) || '0.0'}
+                            Score: {Number(quota.score || 0).toFixed(1)}
                           </div>
                           <div className="text-xs text-text-secondary">
                             {quota.reentries} reentradas

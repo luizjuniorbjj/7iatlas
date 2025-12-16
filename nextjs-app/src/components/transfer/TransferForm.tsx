@@ -221,11 +221,11 @@ export default function TransferForm({ balance, onSuccess }: TransferFormProps) 
       <div className="p-4 bg-white/5 rounded-xl mb-6">
         <div className="text-sm text-text-secondary mb-1">Saldo disponível</div>
         <div className="font-orbitron text-2xl font-bold text-green-aurora">
-          ${balance.toFixed(2)}
+          ${Number(balance).toFixed(2)}
         </div>
         {limits && (
           <div className="text-xs text-text-muted mt-2">
-            Disponível hoje: ${limits.availableToday.toFixed(2)} / ${limits.maxPerDay.toFixed(2)}
+            Disponível hoje: ${Number(limits.availableToday).toFixed(2)} / ${Number(limits.maxPerDay).toFixed(2)}
           </div>
         )}
       </div>

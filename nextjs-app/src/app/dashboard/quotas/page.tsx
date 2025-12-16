@@ -58,7 +58,7 @@ export default function QuotasPage() {
       })
       const userData = await userRes.json()
       if (userData.success) {
-        setUserBalance(userData.data.stats.balance)
+        setUserBalance(Number(userData.data.stats.balance) || 0)
       }
     } catch (err) {
       console.error('Erro ao carregar dados:', err)

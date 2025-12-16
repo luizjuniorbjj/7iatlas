@@ -119,7 +119,7 @@ export default function HistoryPage() {
         <div className="stat-card">
           <div className="text-xl mb-2">📥</div>
           <div className="font-orbitron text-lg font-bold text-green-aurora">
-            ${data?.stats.totalDeposits.toFixed(2) || '0'}
+            ${Number(data?.stats.totalDeposits || 0).toFixed(2)}
           </div>
           <div className="text-text-secondary text-xs">Depósitos</div>
         </div>
@@ -127,7 +127,7 @@ export default function HistoryPage() {
         <div className="stat-card">
           <div className="text-xl mb-2">🔄</div>
           <div className="font-orbitron text-lg font-bold text-cyan">
-            ${data?.stats.totalCycleRewards.toFixed(2) || '0'}
+            ${Number(data?.stats.totalCycleRewards || 0).toFixed(2)}
           </div>
           <div className="text-text-secondary text-xs">Ciclos</div>
         </div>
@@ -135,7 +135,7 @@ export default function HistoryPage() {
         <div className="stat-card">
           <div className="text-xl mb-2">🎁</div>
           <div className="font-orbitron text-lg font-bold text-gold">
-            ${data?.stats.totalBonus.toFixed(2) || '0'}
+            ${Number(data?.stats.totalBonus || 0).toFixed(2)}
           </div>
           <div className="text-text-secondary text-xs">Bônus</div>
         </div>
@@ -143,7 +143,7 @@ export default function HistoryPage() {
         <div className="stat-card">
           <div className="text-xl mb-2">📤</div>
           <div className="font-orbitron text-lg font-bold text-red">
-            ${data?.stats.totalWithdrawals.toFixed(2) || '0'}
+            ${Number(data?.stats.totalWithdrawals || 0).toFixed(2)}
           </div>
           <div className="text-text-secondary text-xs">Saques</div>
         </div>
@@ -151,7 +151,7 @@ export default function HistoryPage() {
         <div className="stat-card">
           <div className="text-xl mb-2">💰</div>
           <div className="font-orbitron text-lg font-bold text-green-aurora">
-            ${data?.stats.totalTransfersIn.toFixed(2) || '0'}
+            ${Number(data?.stats.totalTransfersIn || 0).toFixed(2)}
           </div>
           <div className="text-text-secondary text-xs">Recebidos</div>
         </div>
@@ -159,7 +159,7 @@ export default function HistoryPage() {
         <div className="stat-card">
           <div className="text-xl mb-2">💸</div>
           <div className="font-orbitron text-lg font-bold text-pink-star">
-            ${data?.stats.totalTransfersOut.toFixed(2) || '0'}
+            ${Number(data?.stats.totalTransfersOut || 0).toFixed(2)}
           </div>
           <div className="text-text-secondary text-xs">Enviados</div>
         </div>
@@ -243,7 +243,7 @@ export default function HistoryPage() {
                     <div className="text-right">
                       <div className={`font-orbitron font-bold ${typeInfo.color}`}>
                         {tx.type === 'WITHDRAWAL' || tx.type === 'TRANSFER_OUT' ? '-' : '+'}
-                        ${tx.amount.toFixed(2)}
+                        ${Number(tx.amount).toFixed(2)}
                       </div>
                       <div className="text-xs">
                         <span className={`px-2 py-0.5 rounded-full ${

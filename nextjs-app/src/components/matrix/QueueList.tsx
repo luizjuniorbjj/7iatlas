@@ -195,7 +195,7 @@ export default function QueueList({ level, initialPage = 1 }: QueueListProps) {
 
               <div className="text-right">
                 <div className="text-sm font-medium">
-                  Score: {item.score.toFixed(2)}
+                  Score: {Number(item.score).toFixed(2)}
                 </div>
                 <div className="text-xs text-text-muted">
                   {formatDate(item.entryDate)}

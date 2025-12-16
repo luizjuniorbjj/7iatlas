@@ -17,6 +17,8 @@ interface QueuePosition {
   enteredAt: Date
   reentries: number
   quotaNumber: number
+  cyclesCompleted: number
+  totalEarned: number
 }
 
 interface LevelStatsData {
@@ -152,6 +154,31 @@ export async function getAllUserPositions(
     },
   })
 
+  // Busca ciclos completados do usuário neste nível (posição RECEIVER = ganho)
+  const cyclesCompleted = await prisma.cycleHistory.count({
+    where: {
+      userId,
+      levelId: level.id,
+      position: 'RECEIVER',
+      status: 'CONFIRMED',
+    },
+  })
+
+  // Busca total ganho em ciclos neste nível
+  const cycleEarnings = await prisma.cycleHistory.aggregate({
+    where: {
+      userId,
+      levelId: level.id,
+      position: 'RECEIVER',
+      status: 'CONFIRMED',
+    },
+    _sum: {
+      amount: true,
+    },
+  })
+
+  const totalEarned = cycleEarnings._sum.amount ? Number(cycleEarnings._sum.amount) : 0
+
   const stats = await getLevelStats(levelNumber)
   const positions: QueuePosition[] = []
 
@@ -177,6 +204,8 @@ export async function getAllUserPositions(
       enteredAt: entry.enteredAt,
       reentries: entry.reentries,
       quotaNumber: entry.quotaNumber,
+      cyclesCompleted,
+      totalEarned,
     })
   }
 

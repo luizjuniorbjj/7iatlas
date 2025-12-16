@@ -572,7 +572,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-right">
                       {activity.amount ? (
-                        <div className="text-green-aurora font-medium">+${activity.amount.toFixed(2)}</div>
+                        <div className="text-green-aurora font-medium">+${Number(activity.amount).toFixed(2)}</div>
                       ) : (
                         <div className="text-cyan text-sm">{activity.status}</div>
                       )}

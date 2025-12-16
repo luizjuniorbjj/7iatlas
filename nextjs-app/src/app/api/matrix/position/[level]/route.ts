@@ -51,6 +51,9 @@ export async function GET(
       enteredAt: mainPosition.enteredAt,
       reentries: mainPosition.reentries,
       quotaNumber: mainPosition.quotaNumber,
+      // Dados de ciclos e ganhos
+      cyclesCompleted: mainPosition.cyclesCompleted,
+      totalEarned: mainPosition.totalEarned,
       // Todas as cotas
       allQuotas: positions,
       totalQuotas: positions.length,

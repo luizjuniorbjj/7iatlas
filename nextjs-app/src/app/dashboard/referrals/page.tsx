@@ -140,7 +140,7 @@ export default function ReferralsPage() {
 
         <div className="stat-card">
           <div className="w-10 h-10 rounded-xl bg-pink-star/20 flex items-center justify-center text-xl mb-3">💰</div>
-          <div className="font-orbitron text-2xl font-bold text-pink-star">${data?.stats.totalBonus?.toFixed(2) || '0.00'}</div>
+          <div className="font-orbitron text-2xl font-bold text-pink-star">${Number(data?.stats.totalBonus || 0).toFixed(2)}</div>
           <div className="text-text-secondary text-xs">Total em Bônus</div>
         </div>
       </div>
@@ -258,7 +258,7 @@ export default function ReferralsPage() {
                           <span className="font-orbitron">{ref.currentLevel}</span>
                         </td>
                         <td className="py-3">
-                          <span className="text-green-aurora font-medium">${ref.totalBonus.toFixed(2)}</span>
+                          <span className="text-green-aurora font-medium">${Number(ref.totalBonus).toFixed(2)}</span>
                         </td>
                         <td className="py-3 text-text-secondary text-sm">
                           {formatDate(ref.createdAt)}

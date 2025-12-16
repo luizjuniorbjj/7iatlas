@@ -111,7 +111,7 @@ export default function PositionCard({ level, showDetails = true }: PositionCard
                 </div>
                 {showDetails && (
                   <div className="text-xs text-text-secondary">
-                    Score: {pos.score.toFixed(2)}
+                    Score: {Number(pos.score).toFixed(2)}
                   </div>
                 )}
               </div>

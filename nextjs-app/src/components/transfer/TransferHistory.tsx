@@ -136,7 +136,7 @@ export default function TransferHistory() {
                 }`}
               >
                 {transfer.type === 'received' ? '+' : '-'}$
-                {transfer.amount.toFixed(2)}
+                {Number(transfer.amount).toFixed(2)}
               </div>
               <div className="text-xs text-text-muted">
                 {formatDate(transfer.createdAt)}
