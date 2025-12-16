@@ -285,21 +285,13 @@ export default function DashboardPage() {
             <span>📊</span>
             <span>Matriz</span>
           </Link>
-          <Link href="/dashboard/transfers" className="nav-item">
-            <span>💸</span>
-            <span>Transferências</span>
+          <Link href="/dashboard/wallet" className="nav-item">
+            <span>💰</span>
+            <span>Carteira</span>
           </Link>
           <Link href="/dashboard/referrals" className="nav-item">
             <span>👥</span>
-            <span>Indicações</span>
-          </Link>
-          <Link href="/dashboard/notifications" className="nav-item">
-            <span>🔔</span>
-            <span>Notificações</span>
-          </Link>
-          <Link href="/dashboard/jupiter-pool" className="nav-item">
-            <span>🪐</span>
-            <span>Jupiter Pool</span>
+            <span>Indicados</span>
           </Link>
           <Link href="/dashboard/settings" className="nav-item">
             <span>⚙️</span>
@@ -524,14 +516,14 @@ export default function DashboardPage() {
               </Link>
 
               <Link
-                href="/dashboard/transfers"
+                href="/dashboard/wallet"
                 className="glass-card p-4 hover:border-gradient-mid/50 transition-colors group"
               >
                 <div className="flex flex-col items-center text-center">
                   <div className="w-12 h-12 rounded-xl bg-green-aurora/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform mb-2">
-                    💸
+                    💰
                   </div>
-                  <div className="font-medium text-sm">Transferir</div>
+                  <div className="font-medium text-sm">Carteira</div>
                 </div>
               </Link>
 
