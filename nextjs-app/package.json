@@ -12,7 +12,9 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "ts-node prisma/seed.ts",
     "db:seed:test": "ts-node prisma/seed-test.ts",
-    "db:reset": "prisma db push --force-reset && npm run db:seed:test"
+    "db:seed:populate": "npx ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed-populate.ts",
+    "db:reset": "prisma db push --force-reset && npm run db:seed",
+    "db:reset:populate": "prisma db push --force-reset && npm run db:seed:populate"
   },
   "dependencies": {
     "next": "14.0.4",
