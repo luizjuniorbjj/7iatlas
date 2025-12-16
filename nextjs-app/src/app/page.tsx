@@ -16,14 +16,10 @@ export default function Home() {
             <Image
               src={ASSETS.LOGO}
               alt={ASSETS.APP_NAME}
-              width={200}
-              height={80}
+              width={250}
+              height={100}
               priority
-              className="mb-4"
             />
-            <h1 className="font-orbitron text-4xl md:text-5xl font-black text-white">
-              ATLAS
-            </h1>
           </div>
 
           {/* Tagline */}
@@ -35,12 +31,9 @@ export default function Home() {
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex justify-center">
             <Link href="/auth/login" className="btn-primary text-lg">
               🚀 Acessar Dashboard
-            </Link>
-            <Link href="/auth/register" className="btn-secondary text-lg">
-              📝 Criar Conta
             </Link>
           </div>
 

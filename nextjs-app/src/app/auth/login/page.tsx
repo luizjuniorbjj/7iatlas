@@ -210,9 +210,9 @@ export default function LoginPage() {
 
           {/* Footer */}
           <div className="mt-6 text-sm text-text-muted">
-            Não tem conta?{' '}
-            <Link href="/auth/register" className="text-pink-star hover:underline">
-              Criar conta
+            Esqueceu a senha?{' '}
+            <Link href="/auth/recover" className="text-pink-star hover:underline">
+              Recuperar
             </Link>
           </div>
         </div>
