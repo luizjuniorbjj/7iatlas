@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { LEVEL_CONFIG } from '@/constants/levels'
 import { ASSETS } from '@/constants/assets'
+import { formatCurrency, formatNumber } from '@/utils/format'
 
 // Tipos
 interface WalletSummary {
@@ -462,7 +463,7 @@ export default function WalletPage() {
                 <div>
                   <p className="text-gray-400 text-sm mb-1">Saldo Disponível</p>
                   <p className="font-orbitron text-4xl font-bold text-white">
-                    ${summary?.balance.toFixed(2) || '0.00'}
+                    {formatCurrency(summary?.balance)}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -492,22 +493,22 @@ export default function WalletPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <p className="text-gray-400 text-xs mb-1">Doado</p>
-                <p className="font-orbitron text-xl font-bold text-white">${summary?.totalDonated.toFixed(0) || 0}</p>
+                <p className="font-orbitron text-xl font-bold text-white">{formatCurrency(summary?.totalDonated, 0)}</p>
                 <p className="text-gray-500 text-xs">total</p>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <p className="text-gray-400 text-xs mb-1">Recebido</p>
-                <p className="font-orbitron text-xl font-bold text-emerald-400">${summary?.totalReceived.toFixed(0) || 0}</p>
+                <p className="font-orbitron text-xl font-bold text-emerald-400">{formatCurrency(summary?.totalReceived, 0)}</p>
                 <p className="text-gray-500 text-xs">ciclos + bônus</p>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <p className="text-gray-400 text-xs mb-1">Investido</p>
-                <p className="font-orbitron text-xl font-bold text-white">${summary?.totalInvested.toFixed(0) || 0}</p>
+                <p className="font-orbitron text-xl font-bold text-white">{formatCurrency(summary?.totalInvested, 0)}</p>
                 <p className="text-gray-500 text-xs">em cotas</p>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <p className="text-gray-400 text-xs mb-1">IEC</p>
-                <p className="font-orbitron text-xl font-bold text-yellow-400">{summary?.iec.toFixed(0) || 0}%</p>
+                <p className="font-orbitron text-xl font-bold text-yellow-400">{formatNumber(summary?.iec)}%</p>
                 <p className="text-gray-500 text-xs">Índice de Execução</p>
               </div>
             </div>
@@ -574,7 +575,7 @@ export default function WalletPage() {
                     {/* Sacar */}
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <h3 className="text-white font-medium mb-3">📤 Solicitar Saque</h3>
-                      <p className="text-gray-400 text-xs mb-3">Saldo disponível: ${summary?.balance.toFixed(2)}</p>
+                      <p className="text-gray-400 text-xs mb-3">Saldo disponível: {formatCurrency(summary?.balance)}</p>
                       <div className="flex gap-2">
                         <input
                           type="number"
@@ -600,15 +601,15 @@ export default function WalletPage() {
                     <h3 className="text-white font-medium mb-3">📅 Este Mês</h3>
                     <div className="grid grid-cols-3 gap-4">
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-emerald-400">${summary?.monthlyReceived.toFixed(0) || 0}</p>
+                        <p className="text-2xl font-bold text-emerald-400">{formatCurrency(summary?.monthlyReceived, 0)}</p>
                         <p className="text-gray-400 text-xs">Recebido</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-white">{summary?.totalCyclesCompleted || 0}</p>
+                        <p className="text-2xl font-bold text-white">{formatNumber(summary?.totalCyclesCompleted)}</p>
                         <p className="text-gray-400 text-xs">Ciclos Completados</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-purple-400">${summary?.totalReceivedBonus.toFixed(0) || 0}</p>
+                        <p className="text-2xl font-bold text-purple-400">{formatCurrency(summary?.totalReceivedBonus, 0)}</p>
                         <p className="text-gray-400 text-xs">Bônus Indicação</p>
                       </div>
                     </div>
@@ -621,7 +622,7 @@ export default function WalletPage() {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="font-orbitron text-lg text-white">Comprar Cotas</h2>
-                    <p className="text-gray-400 text-sm">Saldo: <span className="text-white font-bold">${summary?.balance.toFixed(2)}</span></p>
+                    <p className="text-gray-400 text-sm">Saldo: <span className="text-white font-bold">{formatCurrency(summary?.balance)}</span></p>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
@@ -683,13 +684,13 @@ export default function WalletPage() {
 
                       <div className="bg-black/30 rounded-lg p-3 mb-4">
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-400">{quotaQuantity} cota(s) × ${LEVEL_CONFIG.ENTRY_VALUES[selectedLevel - 1]}</span>
-                          <span className="text-white font-bold">${quotaQuantity * LEVEL_CONFIG.ENTRY_VALUES[selectedLevel - 1]}</span>
+                          <span className="text-gray-400">{quotaQuantity} cota(s) × {formatCurrency(LEVEL_CONFIG.ENTRY_VALUES[selectedLevel - 1], 0)}</span>
+                          <span className="text-white font-bold">{formatCurrency(quotaQuantity * LEVEL_CONFIG.ENTRY_VALUES[selectedLevel - 1], 0)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-400">Saldo após compra:</span>
                           <span className="text-emerald-400 font-bold">
-                            ${((summary?.balance || 0) - quotaQuantity * LEVEL_CONFIG.ENTRY_VALUES[selectedLevel - 1]).toFixed(2)}
+                            {formatCurrency((summary?.balance || 0) - quotaQuantity * LEVEL_CONFIG.ENTRY_VALUES[selectedLevel - 1])}
                           </span>
                         </div>
                       </div>
@@ -711,7 +712,7 @@ export default function WalletPage() {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="font-orbitron text-lg text-white">Transferir Saldo</h2>
-                    <p className="text-gray-400 text-sm">Saldo: <span className="text-white font-bold">${summary?.balance.toFixed(2)}</span></p>
+                    <p className="text-gray-400 text-sm">Saldo: <span className="text-white font-bold">{formatCurrency(summary?.balance)}</span></p>
                   </div>
 
                   <div className="max-w-md space-y-4">
@@ -767,12 +768,12 @@ export default function WalletPage() {
                       <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-3">
                         <div className="flex justify-between text-sm mb-1">
                           <span className="text-gray-400">Enviar:</span>
-                          <span className="text-white font-bold">${parseFloat(transferAmount).toFixed(2)}</span>
+                          <span className="text-white font-bold">{formatCurrency(parseFloat(transferAmount))}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-400">Seu saldo após:</span>
                           <span className="text-emerald-400 font-bold">
-                            ${((summary?.balance || 0) - parseFloat(transferAmount)).toFixed(2)}
+                            {formatCurrency((summary?.balance || 0) - parseFloat(transferAmount))}
                           </span>
                         </div>
                       </div>
@@ -882,9 +883,9 @@ export default function WalletPage() {
                         </div>
                         <div className="text-right">
                           <p className={`font-bold ${tx.amount > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {tx.amount > 0 ? '+' : ''}${tx.amount.toFixed(2)}
+                            {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
                           </p>
-                          <p className="text-gray-500 text-xs">Saldo: ${tx.balanceAfter.toFixed(2)}</p>
+                          <p className="text-gray-500 text-xs">Saldo: {formatCurrency(tx.balanceAfter)}</p>
                         </div>
                       </div>
                     ))}
