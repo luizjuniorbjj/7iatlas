@@ -344,6 +344,10 @@ export default function DashboardPage() {
             <span>⚙️</span>
             <span>Configurações</span>
           </Link>
+          <Link href="/dashboard/admin" className="nav-item mt-4 bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-orange-500/30">
+            <span>🔐</span>
+            <span>Admin</span>
+          </Link>
         </nav>
 
         <div className="pt-4 border-t border-white/10">

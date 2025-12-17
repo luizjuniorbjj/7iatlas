@@ -2,7 +2,7 @@
 // Sistema de visualização de matriz e posição na fila
 
 import prisma from '@/lib/prisma'
-import { matrixService } from './matrix.service'
+// NOTA: matrixService removido pois updateQueueScores não é mais chamado na listagem
 
 // ==========================================
 // TIPOS
@@ -154,8 +154,9 @@ export async function getAllUserPositions(
     },
   })
 
-  // Busca ciclos completados do usuário neste nível (posição RECEIVER = ganho)
-  const cyclesCompleted = await prisma.cycleHistory.count({
+  // Busca ciclos completados do usuário neste nível
+  // Primeiro tenta CycleHistory, se não tiver, usa Transaction
+  let cyclesCompleted = await prisma.cycleHistory.count({
     where: {
       userId,
       levelId: level.id,
@@ -164,20 +165,43 @@ export async function getAllUserPositions(
     },
   })
 
-  // Busca total ganho em ciclos neste nível
-  const cycleEarnings = await prisma.cycleHistory.aggregate({
-    where: {
-      userId,
-      levelId: level.id,
-      position: 'RECEIVER',
-      status: 'CONFIRMED',
-    },
-    _sum: {
-      amount: true,
-    },
-  })
+  let totalEarned = 0
 
-  const totalEarned = cycleEarnings._sum.amount ? Number(cycleEarnings._sum.amount) : 0
+  if (cyclesCompleted > 0) {
+    // Usa CycleHistory se existir
+    const cycleEarnings = await prisma.cycleHistory.aggregate({
+      where: {
+        userId,
+        levelId: level.id,
+        position: 'RECEIVER',
+        status: 'CONFIRMED',
+      },
+      _sum: {
+        amount: true,
+      },
+    })
+    totalEarned = cycleEarnings._sum.amount ? Number(cycleEarnings._sum.amount) : 0
+  } else {
+    // Fallback: usa Transaction com CYCLE_REWARD para este nível
+    // O valor do reward é 2x o entry value do nível
+    const rewardValue = level.rewardValue.toNumber()
+
+    const cycleTransactions = await prisma.transaction.aggregate({
+      where: {
+        userId,
+        type: 'CYCLE_REWARD',
+        amount: rewardValue, // Filtra pelo valor exato do reward deste nível
+        status: 'CONFIRMED',
+      },
+      _sum: {
+        amount: true,
+      },
+      _count: true,
+    })
+
+    cyclesCompleted = cycleTransactions._count || 0
+    totalEarned = cycleTransactions._sum.amount ? Number(cycleTransactions._sum.amount) : 0
+  }
 
   const stats = await getLevelStats(levelNumber)
   const positions: QueuePosition[] = []
@@ -425,8 +449,8 @@ export async function getQueueList(
     }
   }
 
-  // Atualiza scores primeiro
-  await matrixService.updateQueueScores(levelNumber)
+  // NOTA: Não atualizamos scores aqui pois é muito pesado com muitos usuários
+  // Os scores são atualizados em background ou durante processamento de ciclos
 
   // Monta query base
   const whereClause: any = {

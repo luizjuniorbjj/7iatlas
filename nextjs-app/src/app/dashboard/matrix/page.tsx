@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { LEVEL_CONFIG } from '@/constants/levels'
 import { ASSETS } from '@/constants/assets'
+import { formatCurrency, formatNumber } from '@/utils/format'
 
 interface LevelData {
   levelNumber: number
@@ -315,7 +316,7 @@ export default function MatrixPage() {
                             </div>
                             <div>
                               <div className="text-white text-[10px] font-bold">Nível {group.level}</div>
-                              <div className="text-gray-400 text-[9px]">${LEVEL_CONFIG.ENTRY_VALUES[group.level - 1]}</div>
+                              <div className="text-gray-400 text-[9px]">{formatCurrency(LEVEL_CONFIG.ENTRY_VALUES[group.level - 1], 0)}</div>
                             </div>
                           </div>
                           <div className="text-right">
@@ -338,7 +339,7 @@ export default function MatrixPage() {
                           }`}>
                             #{bestQuota.position}
                           </div>
-                          <div className="text-gray-400 text-[9px]">de {group.totalInQueue} na fila</div>
+                          <div className="text-gray-400 text-[9px]">de {formatNumber(group.totalInQueue)} na fila</div>
                         </div>
 
                         {/* Barra de Progresso */}
@@ -360,7 +361,7 @@ export default function MatrixPage() {
                           <div className="bg-emerald-500/10 border border-emerald-500/30 rounded p-1.5 text-center">
                             <div className="text-[8px] text-emerald-300">Total Recebido</div>
                             <div className="text-emerald-400 font-bold text-xs">
-                              ${Number(group.totalEarned).toFixed(0)}
+                              {formatCurrency(group.totalEarned, 0)}
                             </div>
                             <div className="text-[7px] text-emerald-300/60">
                               {group.totalCycles > 0 ? `${group.totalCycles} ciclo${group.totalCycles > 1 ? 's' : ''}` : 'nenhum'}
@@ -369,7 +370,7 @@ export default function MatrixPage() {
                           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-1.5 text-center">
                             <div className="text-[8px] text-yellow-300">Próximo</div>
                             <div className="text-yellow-400 font-bold text-xs">
-                              ${LEVEL_CONFIG.REWARD_VALUES[group.level - 1]}
+                              {formatCurrency(LEVEL_CONFIG.REWARD_VALUES[group.level - 1], 0)}
                             </div>
                             <div className="text-[7px] text-yellow-300/60">por cota</div>
                           </div>
@@ -425,7 +426,7 @@ export default function MatrixPage() {
                                   </div>
                                   <div className="flex items-center justify-between mt-0.5">
                                     <span className="text-gray-500">Ciclos: {quota.cyclesCompleted}</span>
-                                    <span className="text-emerald-400">+${Number(quota.totalEarned).toFixed(0)}</span>
+                                    <span className="text-emerald-400">+{formatCurrency(quota.totalEarned, 0)}</span>
                                   </div>
                                 </div>
                               )
@@ -471,7 +472,7 @@ export default function MatrixPage() {
                           </span>
                         )}
                       </div>
-                      <div className="text-xs font-bold text-white">${LEVEL_CONFIG.ENTRY_VALUES[level - 1]}</div>
+                      <div className="text-xs font-bold text-white">{formatCurrency(LEVEL_CONFIG.ENTRY_VALUES[level - 1], 0)}</div>
                       <div className="text-[9px] text-gray-400">
                         {levelData?.totalInQueue || 0} fila
                       </div>
@@ -489,10 +490,10 @@ export default function MatrixPage() {
                 </h2>
                 <div className="flex items-center gap-3 text-xs">
                   <span className="text-gray-400">
-                    {totalInQueue} pessoas
+                    {formatNumber(totalInQueue)} pessoas
                   </span>
                   <span className="text-emerald-400 font-bold">
-                    Caixa: ${Number(getLevelData(selectedLevel)?.cashBalance || 0).toFixed(2)}
+                    Caixa: {formatCurrency(getLevelData(selectedLevel)?.cashBalance || 0)}
                   </span>
                 </div>
               </div>
