@@ -113,6 +113,46 @@ export async function getUserPosition(
   const stats = await getLevelStats(levelNumber)
   const estimatedWait = estimateWaitTime(position, stats?.avgCyclesPerDay || 0)
 
+  // Busca ciclos completados do usuário neste nível
+  let cyclesCompleted = await prisma.cycleHistory.count({
+    where: {
+      userId,
+      levelId: level.id,
+      position: 'RECEIVER',
+      status: 'CONFIRMED',
+    },
+  })
+
+  let totalEarned = 0
+
+  if (cyclesCompleted > 0) {
+    const cycleEarnings = await prisma.cycleHistory.aggregate({
+      where: {
+        userId,
+        levelId: level.id,
+        position: 'RECEIVER',
+        status: 'CONFIRMED',
+      },
+      _sum: { amount: true },
+    })
+    totalEarned = cycleEarnings._sum.amount ? Number(cycleEarnings._sum.amount) : 0
+  } else {
+    // Fallback: usa Transaction com CYCLE_REWARD
+    const rewardValue = level.rewardValue.toNumber()
+    const cycleTransactions = await prisma.transaction.aggregate({
+      where: {
+        userId,
+        type: 'CYCLE_REWARD',
+        amount: rewardValue,
+        status: 'CONFIRMED',
+      },
+      _sum: { amount: true },
+      _count: true,
+    })
+    cyclesCompleted = cycleTransactions._count || 0
+    totalEarned = cycleTransactions._sum.amount ? Number(cycleTransactions._sum.amount) : 0
+  }
+
   return {
     position,
     totalInQueue,
@@ -122,6 +162,8 @@ export async function getUserPosition(
     enteredAt: userEntry.enteredAt,
     reentries: userEntry.reentries,
     quotaNumber: userEntry.quotaNumber,
+    cyclesCompleted,
+    totalEarned,
   }
 }
 

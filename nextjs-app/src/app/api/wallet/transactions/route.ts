@@ -15,6 +15,8 @@ const TYPE_LABELS: Record<TransactionType, { label: string; icon: string; color:
   INTERNAL_TRANSFER_IN: { label: 'Recebido', icon: '💸', color: 'green' },
   INTERNAL_TRANSFER_OUT: { label: 'Enviado', icon: '💸', color: 'red' },
   QUOTA_PURCHASE: { label: 'Compra Cota', icon: '🎫', color: 'red' },
+  JUPITER_POOL_DEPOSIT: { label: 'Jupiter Pool Dep', icon: '🪐', color: 'blue' },
+  JUPITER_POOL_WITHDRAWAL: { label: 'Jupiter Pool Saq', icon: '🪐', color: 'orange' },
 }
 
 export async function GET(request: Request) {
