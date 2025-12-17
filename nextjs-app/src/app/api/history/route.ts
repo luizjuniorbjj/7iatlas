@@ -68,12 +68,12 @@ export async function GET(request: NextRequest) {
       }).then(r => r._sum.amount || 0),
 
       totalTransfersIn: await prisma.transaction.aggregate({
-        where: { userId: payload.userId, type: 'TRANSFER_IN', status: 'CONFIRMED' },
+        where: { userId: payload.userId, type: 'INTERNAL_TRANSFER_IN', status: 'CONFIRMED' },
         _sum: { amount: true }
       }).then(r => r._sum.amount || 0),
 
       totalTransfersOut: await prisma.transaction.aggregate({
-        where: { userId: payload.userId, type: 'TRANSFER_OUT', status: 'CONFIRMED' },
+        where: { userId: payload.userId, type: 'INTERNAL_TRANSFER_OUT', status: 'CONFIRMED' },
         _sum: { amount: true }
       }).then(r => r._sum.amount || 0)
     }

@@ -16,8 +16,7 @@ interface LevelData {
   cashBalance: number
 }
 
-interface UserPosition {
-  level: number
+interface QuotaPosition {
   position: number
   totalInQueue: number
   score: number
@@ -26,6 +25,19 @@ interface UserPosition {
   reentries: number
   cyclesCompleted: number
   totalEarned: number
+  percentile: number
+  estimatedWait: string
+}
+
+interface LevelGroupedData {
+  level: number
+  totalQuotas: number
+  quotas: QuotaPosition[]
+  bestPosition: number
+  worstPosition: number
+  totalCycles: number
+  totalEarned: number
+  totalInQueue: number
 }
 
 interface QueueItem {
@@ -42,7 +54,8 @@ interface QueueItem {
 export default function MatrixPage() {
   const [selectedLevel, setSelectedLevel] = useState(1)
   const [levelsData, setLevelsData] = useState<LevelData[]>([])
-  const [userPositions, setUserPositions] = useState<UserPosition[]>([])
+  const [groupedPositions, setGroupedPositions] = useState<LevelGroupedData[]>([])
+  const [expandedLevels, setExpandedLevels] = useState<Set<number>>(new Set())
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
   const [loading, setLoading] = useState(true)
   const [queueLoading, setQueueLoading] = useState(false)
@@ -70,33 +83,49 @@ export default function MatrixPage() {
     const fetchUserPositions = async () => {
       try {
         const token = localStorage.getItem('accessToken')
-        const positions: UserPosition[] = []
+        const grouped: LevelGroupedData[] = []
 
         for (let level = 1; level <= 10; level++) {
           const res = await fetch(`/api/matrix/position/${level}`, {
             headers: { Authorization: `Bearer ${token}` }
           })
           const data = await res.json()
-          if (data.position && data.position > 0) {
-            positions.push({
+
+          // API retorna allQuotas com todas as cotas do nível
+          if (data.hasPosition && data.allQuotas && data.allQuotas.length > 0) {
+            const quotas: QuotaPosition[] = data.allQuotas.map((q: any) => ({
+              position: q.position,
+              totalInQueue: q.totalInQueue,
+              score: q.score || 0,
+              quotaNumber: q.quotaNumber || 1,
+              enteredAt: q.enteredAt,
+              reentries: q.reentries || 0,
+              cyclesCompleted: q.cyclesCompleted || 0,
+              totalEarned: q.totalEarned || 0,
+              percentile: q.percentile || 0,
+              estimatedWait: q.estimatedWait || ''
+            }))
+
+            // Ordena por posição (melhor primeiro)
+            quotas.sort((a, b) => a.position - b.position)
+
+            grouped.push({
               level,
-              position: data.position,
-              totalInQueue: data.totalInQueue,
-              score: data.score || 0,
-              quotaNumber: data.quotaNumber || 1,
-              enteredAt: data.enteredAt,
-              reentries: data.reentries || 0,
-              // Dados reais de ciclos e ganhos vindos da API
-              cyclesCompleted: data.cyclesCompleted || 0,
-              totalEarned: data.totalEarned || 0
+              totalQuotas: quotas.length,
+              quotas,
+              bestPosition: Math.min(...quotas.map(q => q.position)),
+              worstPosition: Math.max(...quotas.map(q => q.position)),
+              totalCycles: quotas.reduce((sum, q) => sum + q.cyclesCompleted, 0),
+              totalEarned: quotas.reduce((sum, q) => sum + q.totalEarned, 0),
+              totalInQueue: data.totalInQueue
             })
           }
         }
-        setUserPositions(positions)
+        setGroupedPositions(grouped)
 
         // Se usuário tem posições, seleciona o primeiro nível onde está
-        if (positions.length > 0) {
-          setSelectedLevel(positions[0].level)
+        if (grouped.length > 0) {
+          setSelectedLevel(grouped[0].level)
         }
       } catch (error) {
         console.error('Erro ao buscar posições:', error)
@@ -136,9 +165,25 @@ export default function MatrixPage() {
   }, [selectedLevel, currentPage])
 
   // Verificar se usuário tem posição no nível
-  const getUserPositionInLevel = (level: number) => {
-    return userPositions.find(p => p.level === level)
+  const getLevelGroupData = (level: number) => {
+    return groupedPositions.find(p => p.level === level)
   }
+
+  // Toggle expandir/colapsar nível
+  const toggleLevelExpanded = (level: number) => {
+    setExpandedLevels(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(level)) {
+        newSet.delete(level)
+      } else {
+        newSet.add(level)
+      }
+      return newSet
+    })
+  }
+
+  // Contar total de cotas do usuário
+  const totalUserQuotas = groupedPositions.reduce((sum, g) => sum + g.totalQuotas, 0)
 
   // Obter dados do nível
   const getLevelData = (level: number) => {
@@ -203,7 +248,7 @@ export default function MatrixPage() {
           </div>
         ) : (
           <>
-            {/* SEÇÃO PRINCIPAL: Suas Posições */}
+            {/* SEÇÃO PRINCIPAL: Suas Posições Agrupadas por Nível */}
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center text-sm">
@@ -212,15 +257,15 @@ export default function MatrixPage() {
                 <div>
                   <h2 className="font-orbitron text-sm text-white">VOCÊ ESTÁ AQUI</h2>
                   <p className="text-gray-400 text-xs">
-                    {userPositions.length > 0
-                      ? `${userPositions.length} posição(ões) ativa(s) na matriz`
+                    {groupedPositions.length > 0
+                      ? `${totalUserQuotas} cota${totalUserQuotas > 1 ? 's' : ''} em ${groupedPositions.length} nível(is)`
                       : 'Você ainda não tem posições. Compre uma cota!'
                     }
                   </p>
                 </div>
               </div>
 
-              {userPositions.length === 0 ? (
+              {groupedPositions.length === 0 ? (
                 <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-6 text-center">
                   <div className="text-4xl mb-3">🚀</div>
                   <h3 className="font-orbitron text-lg text-white mb-2">Entre na Matriz!</h3>
@@ -231,19 +276,17 @@ export default function MatrixPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-                  {userPositions.map((pos, idx) => {
-                    const positionsUntil = getPositionsUntilCycle(pos.position)
-                    const isAboutToCycle = pos.position <= 7
-                    const progress = ((pos.totalInQueue - pos.position + 1) / pos.totalInQueue) * 100
+                  {groupedPositions.map((group) => {
+                    const bestQuota = group.quotas[0] // Primeira é a melhor posição
+                    const isAboutToCycle = bestQuota.position <= 7
+                    const progress = ((group.totalInQueue - bestQuota.position + 1) / group.totalInQueue) * 100
+                    const positionsUntil = getPositionsUntilCycle(bestQuota.position)
+                    const isExpanded = expandedLevels.has(group.level)
 
                     return (
                       <div
-                        key={`${pos.level}-${pos.quotaNumber}-${idx}`}
-                        onClick={() => {
-                          setSelectedLevel(pos.level)
-                          setCurrentPage(1)
-                        }}
-                        className={`cursor-pointer rounded-lg p-2.5 transition-all transform hover:scale-[1.02] relative ${
+                        key={`level-${group.level}`}
+                        className={`rounded-lg p-2.5 transition-all relative ${
                           isAboutToCycle
                             ? 'bg-gradient-to-br from-green-600/40 to-emerald-600/40 border border-green-400 shadow-md shadow-green-500/20'
                             : 'bg-gradient-to-br from-purple-900/40 to-blue-900/40 border border-purple-500/30'
@@ -256,34 +299,46 @@ export default function MatrixPage() {
                           </div>
                         )}
 
-                        {/* Header: Nível e Cota */}
-                        <div className="flex items-center justify-between mb-1.5">
+                        {/* Header: Nível e Total de Cotas */}
+                        <div
+                          className="flex items-center justify-between mb-1.5 cursor-pointer"
+                          onClick={() => {
+                            setSelectedLevel(group.level)
+                            setCurrentPage(1)
+                          }}
+                        >
                           <div className="flex items-center gap-1.5">
                             <div className={`w-6 h-6 rounded flex items-center justify-center font-orbitron font-bold text-[10px] ${
                               isAboutToCycle ? 'bg-green-500' : 'bg-purple-600'
                             }`}>
-                              N{pos.level}
+                              N{group.level}
                             </div>
                             <div>
-                              <div className="text-white text-[10px] font-bold">Nível {pos.level}</div>
-                              <div className="text-gray-400 text-[9px]">${LEVEL_CONFIG.ENTRY_VALUES[pos.level - 1]}</div>
+                              <div className="text-white text-[10px] font-bold">Nível {group.level}</div>
+                              <div className="text-gray-400 text-[9px]">${LEVEL_CONFIG.ENTRY_VALUES[group.level - 1]}</div>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-gray-400 text-[9px]">Cota</div>
-                            <div className="text-white text-[10px] font-bold">#{pos.quotaNumber}</div>
+                            <div className="text-gray-400 text-[9px]">Cotas</div>
+                            <div className="text-white text-[10px] font-bold">{group.totalQuotas}x</div>
                           </div>
                         </div>
 
-                        {/* Posição Destacada */}
-                        <div className="text-center py-1.5 bg-black/30 rounded mb-1.5">
-                          <div className="text-gray-400 text-[9px]">Sua Posição</div>
+                        {/* Melhor Posição Destacada */}
+                        <div
+                          className="text-center py-1.5 bg-black/30 rounded mb-1.5 cursor-pointer"
+                          onClick={() => {
+                            setSelectedLevel(group.level)
+                            setCurrentPage(1)
+                          }}
+                        >
+                          <div className="text-gray-400 text-[9px]">Melhor Posição</div>
                           <div className={`text-2xl font-bold font-orbitron ${
                             isAboutToCycle ? 'text-green-400' : 'text-white'
                           }`}>
-                            #{pos.position}
+                            #{bestQuota.position}
                           </div>
-                          <div className="text-gray-400 text-[9px]">de {pos.totalInQueue} na fila</div>
+                          <div className="text-gray-400 text-[9px]">de {group.totalInQueue} na fila</div>
                         </div>
 
                         {/* Barra de Progresso */}
@@ -300,29 +355,23 @@ export default function MatrixPage() {
                           </div>
                         </div>
 
-                        {/* Info de ciclo atual */}
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-1.5 mb-1.5 text-center">
-                          <div className="text-[8px] text-blue-300">Ciclo Atual</div>
-                          <div className="text-blue-400 font-bold text-sm">{pos.cyclesCompleted + 1}º ciclo</div>
-                        </div>
-
-                        {/* Ganhos separados */}
+                        {/* Totais do Nível */}
                         <div className="grid grid-cols-2 gap-1 mb-1.5">
                           <div className="bg-emerald-500/10 border border-emerald-500/30 rounded p-1.5 text-center">
-                            <div className="text-[8px] text-emerald-300">Já Recebeu</div>
+                            <div className="text-[8px] text-emerald-300">Total Recebido</div>
                             <div className="text-emerald-400 font-bold text-xs">
-                              ${Number(pos.totalEarned).toFixed(0)}
+                              ${Number(group.totalEarned).toFixed(0)}
                             </div>
                             <div className="text-[7px] text-emerald-300/60">
-                              {pos.cyclesCompleted > 0 ? `${pos.cyclesCompleted} ciclo${pos.cyclesCompleted > 1 ? 's' : ''}` : 'nenhum'}
+                              {group.totalCycles > 0 ? `${group.totalCycles} ciclo${group.totalCycles > 1 ? 's' : ''}` : 'nenhum'}
                             </div>
                           </div>
                           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-1.5 text-center">
-                            <div className="text-[8px] text-yellow-300">Vai Receber</div>
+                            <div className="text-[8px] text-yellow-300">Próximo</div>
                             <div className="text-yellow-400 font-bold text-xs">
-                              ${LEVEL_CONFIG.REWARD_VALUES[pos.level - 1]}
+                              ${LEVEL_CONFIG.REWARD_VALUES[group.level - 1]}
                             </div>
-                            <div className="text-[7px] text-yellow-300/60">ao ciclar</div>
+                            <div className="text-[7px] text-yellow-300/60">por cota</div>
                           </div>
                         </div>
 
@@ -332,7 +381,7 @@ export default function MatrixPage() {
                         }`}>
                           {isAboutToCycle ? (
                             <span className="text-green-400 font-bold">
-                              {pos.position === 1 ? '🔥 PRÓXIMO!' : `🔥 Faltam ${positionsUntil}`}
+                              {bestQuota.position === 1 ? '🔥 PRÓXIMO!' : `🔥 Faltam ${positionsUntil}`}
                             </span>
                           ) : (
                             <span className="text-gray-400">
@@ -340,6 +389,49 @@ export default function MatrixPage() {
                             </span>
                           )}
                         </div>
+
+                        {/* Botão para expandir detalhes das cotas */}
+                        {group.totalQuotas > 1 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleLevelExpanded(group.level)
+                            }}
+                            className="w-full mt-1.5 py-1 text-[9px] text-purple-400 hover:text-purple-300 bg-purple-500/10 rounded transition-colors"
+                          >
+                            {isExpanded ? '▲ Ocultar cotas' : `▼ Ver ${group.totalQuotas} cotas`}
+                          </button>
+                        )}
+
+                        {/* Lista expandida de cotas */}
+                        {isExpanded && group.totalQuotas > 1 && (
+                          <div className="mt-2 space-y-1.5 border-t border-white/10 pt-2">
+                            {group.quotas.map((quota, idx) => {
+                              const quotaIsAboutToCycle = quota.position <= 7
+                              return (
+                                <div
+                                  key={`quota-${group.level}-${quota.quotaNumber}-${idx}`}
+                                  className={`p-1.5 rounded text-[9px] ${
+                                    quotaIsAboutToCycle
+                                      ? 'bg-green-500/20 border border-green-500/30'
+                                      : 'bg-white/5 border border-white/10'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-gray-400">Cota #{quota.quotaNumber}</span>
+                                    <span className={`font-bold ${quotaIsAboutToCycle ? 'text-green-400' : 'text-white'}`}>
+                                      Pos #{quota.position}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between mt-0.5">
+                                    <span className="text-gray-500">Ciclos: {quota.cyclesCompleted}</span>
+                                    <span className="text-emerald-400">+${Number(quota.totalEarned).toFixed(0)}</span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -353,7 +445,7 @@ export default function MatrixPage() {
               <div className="grid grid-cols-5 lg:grid-cols-10 gap-1.5">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => {
                   const levelData = getLevelData(level)
-                  const userPos = getUserPositionInLevel(level)
+                  const groupData = getLevelGroupData(level)
                   const isSelected = selectedLevel === level
 
                   return (
@@ -366,16 +458,16 @@ export default function MatrixPage() {
                       className={`p-1.5 rounded text-left transition-all ${
                         isSelected
                           ? 'bg-gradient-to-br from-purple-600 to-pink-600 ring-2 ring-purple-400'
-                          : userPos
+                          : groupData
                           ? 'bg-gradient-to-br from-green-600/20 to-emerald-600/20 border border-green-500/50 hover:border-green-400'
                           : 'bg-white/5 border border-white/10 hover:border-white/30'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-0.5">
                         <span className="font-orbitron font-bold text-white text-[10px]">N{level}</span>
-                        {userPos && (
+                        {groupData && (
                           <span className="text-[8px] px-1 py-0.5 rounded bg-green-500/30 text-green-400">
-                            #{userPos.position}
+                            {groupData.totalQuotas > 1 ? `${groupData.totalQuotas}x` : `#${groupData.bestPosition}`}
                           </span>
                         )}
                       </div>
@@ -406,12 +498,25 @@ export default function MatrixPage() {
               </div>
 
               {/* Indicador se usuário está nesta fila */}
-              {getUserPositionInLevel(selectedLevel) && (
+              {getLevelGroupData(selectedLevel) && (
                 <div className="mb-3 p-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg">
                   <div className="flex items-center gap-2 text-xs">
                     <span>⭐</span>
-                    <span className="text-yellow-400 font-bold">Você está na posição #{getUserPositionInLevel(selectedLevel)?.position}</span>
-                    <span className="text-gray-400">desta fila</span>
+                    {getLevelGroupData(selectedLevel)!.totalQuotas > 1 ? (
+                      <>
+                        <span className="text-yellow-400 font-bold">
+                          Você tem {getLevelGroupData(selectedLevel)!.totalQuotas} cotas neste nível
+                        </span>
+                        <span className="text-gray-400">
+                          (posições: {getLevelGroupData(selectedLevel)!.quotas.map(q => `#${q.position}`).join(', ')})
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-yellow-400 font-bold">Você está na posição #{getLevelGroupData(selectedLevel)!.bestPosition}</span>
+                        <span className="text-gray-400">desta fila</span>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

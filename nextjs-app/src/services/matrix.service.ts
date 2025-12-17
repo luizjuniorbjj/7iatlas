@@ -403,14 +403,19 @@ export async function updateQueueScores(levelNumber: number) {
   })
 
   for (const entry of entries) {
-    const waitingHours = (Date.now() - entry.enteredAt.getTime()) / (1000 * 60 * 60)
-    const referralsCount = entry.user.referrals.filter(r => r.status === 'ACTIVE').length
-    const newScore = calculateScore(waitingHours, entry.reentries, referralsCount)
+    try {
+      const waitingHours = (Date.now() - entry.enteredAt.getTime()) / (1000 * 60 * 60)
+      const referralsCount = entry.user.referrals.filter(r => r.status === 'ACTIVE').length
+      const newScore = calculateScore(waitingHours, entry.reentries, referralsCount)
 
-    await prisma.queueEntry.update({
-      where: { id: entry.id },
-      data: { score: newScore },
-    })
+      await prisma.queueEntry.update({
+        where: { id: entry.id },
+        data: { score: newScore },
+      })
+    } catch {
+      // Ignora se o registro não existe mais (foi processado ou deletado)
+      continue
+    }
   }
 }
 

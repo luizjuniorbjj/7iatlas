@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
 import { TransactionType, TransactionStatus, QueueStatus, UserStatus } from '@prisma/client'
 import { LEVEL_CONFIG } from '@/constants/levels'
+import { calculateScore } from '@/services/matrix.service'
 
 const MAX_QUOTAS_PER_LEVEL = 10
 
@@ -123,9 +124,19 @@ export async function POST(request: Request) {
         },
       })
 
-      // 3. Criar entradas na fila
+      // 3. Buscar número de indicados ativos do usuário
+      const referralsCount = await tx.user.count({
+        where: {
+          referrerId: userId,
+          status: UserStatus.ACTIVE,
+        },
+      })
+
+      // 4. Criar entradas na fila
       const queueEntries = []
-      const baseScore = 1000 - (Date.now() / 1000000) // Score baseado no tempo
+      // Score inicial para nova cota: 0 horas de espera, 0 reentradas
+      // Score será atualizado pelo cron job updateQueueScores
+      const initialScore = calculateScore(0, 0, referralsCount)
 
       for (let i = 0; i < quantity; i++) {
         const quotaNumber = existingQuotas + i + 1
@@ -143,7 +154,7 @@ export async function POST(request: Request) {
             userId,
             levelId: levelData.id,
             position: currentQueueSize + 1,
-            score: baseScore - (i * 0.001), // Pequena diferença para manter ordem
+            score: initialScore - (i * 0.001), // Pequena diferença para manter ordem entre cotas do mesmo usuário
             quotaNumber,
             reentries: 0,
             status: QueueStatus.WAITING,
@@ -153,7 +164,7 @@ export async function POST(request: Request) {
         queueEntries.push(entry)
       }
 
-      // 4. Atualizar estatísticas do nível
+      // 5. Atualizar estatísticas do nível
       await tx.level.update({
         where: { id: levelData.id },
         data: {
@@ -162,7 +173,7 @@ export async function POST(request: Request) {
         },
       })
 
-      // 5. Atualizar nível atual do usuário (se comprou nível maior)
+      // 6. Atualizar nível atual do usuário (se comprou nível maior)
       if (level > user.currentLevel) {
         await tx.user.update({
           where: { id: userId },

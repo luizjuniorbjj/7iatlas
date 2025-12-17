@@ -154,3 +154,676 @@ body {
 .delay-200 { animation-delay: 0.2s; }
 .delay-300 { animation-delay: 0.3s; }
 .delay-400 { animation-delay: 0.4s; }
+
+/* ========================================
+   7iATLAS COSMIC DASHBOARD STYLES
+   ======================================== */
+
+/* Cosmic Background */
+.cosmic-bg {
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(47, 0, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(139, 0, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(255, 0, 255, 0.05) 0%, transparent 70%),
+    var(--bg-dark);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.cosmic-bg::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 50px 160px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(2px 2px at 160px 120px, rgba(139,0,255,0.4), transparent);
+  background-size: 200px 200px;
+  animation: stars-drift 120s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes stars-drift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-200px); }
+}
+
+/* Orbit System */
+.orbit-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.orbit-ring {
+  position: absolute;
+  border: 1px solid rgba(139, 0, 255, 0.2);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.orbit-ring::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, transparent, rgba(139, 0, 255, 0.3), transparent);
+  animation: orbit-glow 4s ease-in-out infinite;
+}
+
+@keyframes orbit-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+/* Planet/Position nodes */
+.orbit-node {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.orbit-node:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+  z-index: 20;
+}
+
+.orbit-node.user-position {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3);
+  animation: user-pulse 2s ease-in-out infinite;
+}
+
+.orbit-node.top-position {
+  background: linear-gradient(135deg, #00FFA3, #00cc7a);
+  box-shadow: 0 0 15px rgba(0, 255, 163, 0.5);
+}
+
+.orbit-node.regular-position {
+  background: linear-gradient(135deg, #2F00FF, #8B00FF);
+  box-shadow: 0 0 10px rgba(139, 0, 255, 0.4);
+}
+
+.orbit-node.about-to-cycle {
+  animation: cycle-ready 1s ease-in-out infinite;
+}
+
+@keyframes user-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.5);
+  }
+}
+
+@keyframes cycle-ready {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 255, 163, 0.8), 0 0 40px rgba(0, 255, 163, 0.4);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(0, 255, 163, 1), 0 0 60px rgba(0, 255, 163, 0.6);
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+/* Central Sun (Level Value) */
+.orbit-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #FFD700 0%, #FFA500 50%, #FF6B00 100%);
+  box-shadow:
+    0 0 30px rgba(255, 215, 0, 0.8),
+    0 0 60px rgba(255, 165, 0, 0.5),
+    0 0 100px rgba(255, 107, 0, 0.3),
+    inset 0 0 30px rgba(255, 255, 255, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  animation: sun-pulse 4s ease-in-out infinite;
+}
+
+@keyframes sun-pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow:
+      0 0 30px rgba(255, 215, 0, 0.8),
+      0 0 60px rgba(255, 165, 0, 0.5),
+      0 0 100px rgba(255, 107, 0, 0.3);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.05);
+    box-shadow:
+      0 0 40px rgba(255, 215, 0, 1),
+      0 0 80px rgba(255, 165, 0, 0.7),
+      0 0 120px rgba(255, 107, 0, 0.5);
+  }
+}
+
+/* Live Ticker */
+.ticker-container {
+  overflow: hidden;
+  background: linear-gradient(90deg, var(--bg-dark), transparent 5%, transparent 95%, var(--bg-dark));
+  position: relative;
+}
+
+.ticker-content {
+  display: flex;
+  animation: ticker-scroll 30s linear infinite;
+  white-space: nowrap;
+}
+
+.ticker-content:hover {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  margin-right: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.ticker-item.gain {
+  border-color: rgba(0, 255, 163, 0.3);
+}
+
+.ticker-item.new-entry {
+  border-color: rgba(139, 0, 255, 0.3);
+}
+
+/* Cosmic Card */
+.cosmic-card {
+  background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(30, 30, 50, 0.7));
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 0, 255, 0.2);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cosmic-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 0, 255, 0.5), transparent);
+}
+
+.cosmic-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(139, 0, 255, 0.03) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* User Avatar Cosmic */
+.cosmic-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2F00FF, #8B00FF, #FF00FF);
+  padding: 2px;
+  position: relative;
+}
+
+.cosmic-avatar::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #2F00FF, #8B00FF, #FF00FF, #2F00FF);
+  animation: avatar-ring-spin 4s linear infinite;
+  z-index: -1;
+}
+
+.cosmic-avatar-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--bg-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+@keyframes avatar-ring-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Level Orbit Selector */
+.level-orbs {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.level-orb {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.level-orb.inactive {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.level-orb.active {
+  background: linear-gradient(135deg, #00FFA3, #00cc7a);
+  color: black;
+  border-color: #00FFA3;
+  box-shadow: 0 0 15px rgba(0, 255, 163, 0.5);
+}
+
+.level-orb.selected {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: black;
+  border-color: #FFD700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+  transform: scale(1.15);
+}
+
+.level-orb:hover:not(.selected) {
+  transform: scale(1.1);
+  border-color: rgba(139, 0, 255, 0.5);
+}
+
+/* Stats Bar Cosmic */
+.cosmic-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  min-width: 80px;
+}
+
+.cosmic-stat-value {
+  font-size: 18px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.cosmic-stat-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+/* Progress Ring */
+.progress-ring {
+  position: relative;
+  width: 60px;
+  height: 60px;
+}
+
+.progress-ring-circle {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.progress-ring-bg {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.progress-ring-fill {
+  stroke: url(#progress-gradient);
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+/* Ranking List Cosmic */
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+.ranking-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(139, 0, 255, 0.3);
+}
+
+.ranking-item.current-user {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05));
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.ranking-position {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.ranking-position.top-1 {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: black;
+}
+
+.ranking-position.top-2 {
+  background: linear-gradient(135deg, #C0C0C0, #A0A0A0);
+  color: black;
+}
+
+.ranking-position.top-3 {
+  background: linear-gradient(135deg, #CD7F32, #8B4513);
+  color: white;
+}
+
+/* Community Fund Display */
+.fund-display {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(0, 255, 163, 0.1), rgba(0, 204, 122, 0.05));
+  border: 1px solid rgba(0, 255, 163, 0.3);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.fund-display::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0, 255, 163, 0.1) 0%, transparent 50%);
+  animation: fund-glow 3s ease-in-out infinite;
+}
+
+@keyframes fund-glow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.fund-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #00FFA3;
+  text-shadow: 0 0 20px rgba(0, 255, 163, 0.5);
+  position: relative;
+  z-index: 1;
+}
+
+/* Mobile Navigation */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, transparent, rgba(10, 10, 15, 0.95) 20%);
+  backdrop-filter: blur(20px);
+  padding: 8px 16px 20px;
+  z-index: 100;
+  display: flex;
+  justify-content: space-around;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+}
+
+.mobile-nav-item.active {
+  color: white;
+  background: linear-gradient(135deg, rgba(139, 0, 255, 0.2), rgba(255, 0, 255, 0.1));
+}
+
+.mobile-nav-item-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+/* Notification Badge */
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #ff4757, #ff6b81);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
+  border: 2px solid var(--bg-dark);
+}
+
+/* Action Buttons Cosmic */
+.cosmic-btn {
+  padding: 14px 24px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.cosmic-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.cosmic-btn:hover::before {
+  left: 100%;
+}
+
+.cosmic-btn-primary {
+  background: linear-gradient(135deg, #2F00FF, #8B00FF);
+  color: white;
+  box-shadow: 0 4px 20px rgba(139, 0, 255, 0.4);
+}
+
+.cosmic-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(139, 0, 255, 0.6);
+}
+
+.cosmic-btn-success {
+  background: linear-gradient(135deg, #00FFA3, #00cc7a);
+  color: black;
+  box-shadow: 0 4px 20px rgba(0, 255, 163, 0.4);
+}
+
+.cosmic-btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(0, 255, 163, 0.6);
+}
+
+.cosmic-btn-gold {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: black;
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
+}
+
+.cosmic-btn-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(255, 215, 0, 0.6);
+}
+
+/* Floating Action Button */
+.fab-cosmic {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00FFA3, #00cc7a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 4px 20px rgba(0, 255, 163, 0.5);
+  z-index: 90;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.fab-cosmic:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 30px rgba(0, 255, 163, 0.7);
+}
+
+/* Level Progress Bar */
+.level-progress-container {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.05);
+}
+
+.level-progress-segment {
+  flex: 1;
+  transition: all 0.3s ease;
+}
+
+.level-progress-segment.filled {
+  background: linear-gradient(135deg, #00FFA3, #00cc7a);
+}
+
+.level-progress-segment.current {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  animation: segment-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes segment-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .cosmic-bg::before {
+    background-size: 150px 150px;
+  }
+
+  .orbit-center {
+    width: 60px;
+    height: 60px;
+  }
+
+  .orbit-node {
+    width: 28px;
+    height: 28px;
+    font-size: 8px;
+  }
+}
+
+/* Hide scrollbar on mobile for cleaner look */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}

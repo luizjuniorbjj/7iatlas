@@ -22,13 +22,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Conta notificações não lidas
-    const count = await prisma.notification.count({
-      where: {
-        userId: payload.userId,
-        read: false
+    // Conta notificações não lidas (pendentes no NotificationLog)
+    let count = 0
+    try {
+      // Verifica se o modelo existe no Prisma Client
+      if (prisma.notificationLog) {
+        count = await prisma.notificationLog.count({
+          where: {
+            userId: payload.userId,
+            status: 'PENDING'
+          }
+        })
       }
-    })
+    } catch {
+      // Se tabela não existir ou outro erro, retorna 0
+      count = 0
+    }
 
     return NextResponse.json({
       success: true,

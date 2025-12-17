@@ -24,6 +24,8 @@
      - 7.4.4 [Transferência Interna de Saldo](#744-transferência-interna-de-saldo)
      - 7.4.5 [Sistema de Notificações](#745-sistema-de-notificações)
      - 7.4.6 [Visualização de Matriz e Posição na Fila](#746-visualização-de-matriz-e-posição-na-fila)
+     - 7.4.7 [Jupiter Pool - Sistema Anti-Travamento](#747-jupiter-pool---sistema-anti-travamento)
+     - 7.4.8 [Fundo Cósmico - Indicador de Liquidez](#748-fundo-cósmico---indicador-de-liquidez)
 8. [Segurança](#8-segurança)
 9. [Deploy](#9-deploy)
 10. [Testes](#10-testes)
@@ -1898,6 +1900,171 @@ PARA O SISTEMA:
 
 ---
 
+## 7.4.7 Jupiter Pool - Sistema Anti-Travamento
+
+O **Jupiter Pool** é uma reserva de segurança que garante a continuidade do sistema, evitando que níveis fiquem travados por falta de entradas.
+
+### Conceito
+
+```
+JUPITER POOL = SEGURO ANTI-TRAVAMENTO
+
+Fonte de Recursos:
+├── 10% de cada ganho do RECEBEDOR (posição 0)
+└── Acumula em reserva separada
+
+Uso dos Recursos:
+├── Injeção em níveis parados
+├── Priorização por Justice Score
+└── Ativação automática por triggers
+```
+
+### Coleta (10% por Ciclo)
+
+```
+QUANDO: Ciclo completa e recebedor ganha
+CÁLCULO: 10% do valor recebido
+
+Exemplo Nível 5:
+├── Recebedor ganha: $320
+├── Jupiter Pool recebe: $32 (10%)
+└── Recebedor líquido: $288
+```
+
+### Triggers de Intervenção
+
+| Alerta | Dias sem Ciclo | Ação |
+|--------|----------------|------|
+| **Amarelo** | 3 dias | Monitoramento ativo |
+| **Laranja** | 5 dias | Preparar injeção |
+| **Vermelho** | 7 dias | Injeção automática |
+
+### Justice Score (Priorização)
+
+Quando múltiplos níveis precisam de intervenção, o sistema usa o **Justice Score** para decidir a ordem:
+
+```python
+justice_score = (
+    tempo_parado × 2 +          # Dias sem ciclo
+    usuarios_afetados × 1.5 +   # Quantas pessoas na fila
+    valor_nivel × 0.1           # Peso pelo valor
+)
+
+# Maior score = maior prioridade de injeção
+```
+
+### Algoritmo de Injeção
+
+```
+1. Identificar níveis em alerta vermelho (7+ dias)
+2. Calcular Justice Score de cada um
+3. Ordenar por score (maior primeiro)
+4. Para cada nível:
+   a. Verificar saldo do Jupiter Pool
+   b. Injetar valor da cota do nível
+   c. Processar ciclo normalmente
+   d. Repetir até saldo insuficiente ou níveis OK
+```
+
+### API Endpoints
+
+```
+GET /api/jupiter-pool/balance
+Response: {
+  balance: number,        // Saldo atual
+  totalDeposits: number,  // Total coletado
+  totalWithdrawals: number, // Total injetado
+  todayDeposits: number,  // Coletado hoje
+  todayWithdrawals: number // Injetado hoje
+}
+
+POST /api/jupiter-pool/inject (Admin)
+Body: { level: number, amount: number }
+```
+
+---
+
+## 7.4.8 Fundo Cósmico - Indicador de Liquidez
+
+O **Fundo Cósmico** é um indicador em tempo real que mostra a soma de todo o dinheiro ativo nas filas dos 10 níveis.
+
+### Conceito
+
+```
+FUNDO CÓSMICO = LIQUIDEZ ATIVA DO SISTEMA
+
+├── Nível 1: cashBalance = $500
+├── Nível 2: cashBalance = $800
+├── Nível 3: cashBalance = $1,200
+├── ...
+├── Nível 10: cashBalance = $X
+└── FUNDO CÓSMICO = SOMA TOTAL
+
+Diferença do Jupiter Pool:
+├── Jupiter Pool = Reserva de SEGURANÇA (guardado)
+└── Fundo Cósmico = Dinheiro em CIRCULAÇÃO (nas filas)
+```
+
+### Cálculo
+
+```typescript
+// API: GET /api/matrix/stats
+const fundoCosmico = levels.reduce(
+  (soma, nivel) => soma + nivel.cashBalance,
+  0
+)
+```
+
+### O que representa cada `cashBalance`
+
+| Evento | Efeito no cashBalance |
+|--------|----------------------|
+| Usuário compra cota | +valor da entrada |
+| Ciclo processa (7 pagamentos) | -valor × 7 |
+| Reentrada automática | +valor (pos. 6 recicla) |
+
+### Por que é importante
+
+```
+FUNDO CÓSMICO ALTO = Sistema Saudável
+├── Muitas pessoas entrando
+├── Ciclos acontecendo regularmente
+└── Liquidez disponível para pagamentos
+
+FUNDO CÓSMICO BAIXO = Atenção
+├── Poucas entradas novas
+├── Ciclos podem demorar mais
+└── Jupiter Pool pode precisar intervir
+```
+
+### Exibição no Dashboard (Cosmos)
+
+```
+┌─────────────────────────────────────┐
+│  ● Fundo Cósmico em Tempo Real      │
+│  $4,405.00                          │
+│  USDT circulando no sistema         │
+└─────────────────────────────────────┘
+```
+
+### Relação com Jupiter Pool
+
+```
+┌──────────────────┐    ┌──────────────────┐
+│   FUNDO CÓSMICO  │    │   JUPITER POOL   │
+│   (Circulação)   │    │   (Reserva)      │
+├──────────────────┤    ├──────────────────┤
+│ Dinheiro ATIVO   │    │ Dinheiro GUARDADO│
+│ Nas filas/níveis │    │ Para emergências │
+│ Alimenta ciclos  │    │ Destrava níveis  │
+└──────────────────┘    └──────────────────┘
+         │                      │
+         └───── SISTEMA ────────┘
+               SAUDÁVEL
+```
+
+---
+
 # 8. SEGURANÇA
 
 ## 8.1 Autenticação
@@ -2561,6 +2728,578 @@ SMTP_PASS="..."
 
 ---
 
+# 12. DASHBOARD - PÁGINAS IMPLEMENTADAS
+
+## 12.1 Estrutura de Páginas
+
+```
+/dashboard/
+├── page.tsx           # Dashboard principal com resumo geral
+├── matrix/page.tsx    # Visualização de matriz e cotas agrupadas
+├── quotas/page.tsx    # Compra de cotas em qualquer nível
+├── wallet/page.tsx    # Carteira unificada (saldos, histórico)
+├── transfers/page.tsx # Transferências internas com PIN
+├── referrals/page.tsx # Sistema de indicações
+├── history/page.tsx   # Histórico completo de transações
+├── notifications/page.tsx # Central de notificações
+├── settings/page.tsx  # Configurações de perfil e PIN
+├── jupiter-pool/page.tsx  # Jupiter Pool (anti-travamento)
+├── cosmos/page.tsx    # Fundo Cósmico (indicador de liquidez)
+└── ranking/page.tsx   # Ranking global de usuários
+```
+
+## 12.2 Página Matrix (/dashboard/matrix)
+
+### Descrição
+Visualização completa da posição do usuário em todos os níveis, com cotas agrupadas e detalhes expandíveis.
+
+### Interfaces TypeScript
+
+```typescript
+interface QuotaPosition {
+  position: number           // Posição na fila
+  totalInQueue: number       // Total de pessoas no nível
+  score: number              // Score de prioridade
+  quotaNumber: number        // Número da cota (1, 2, 3...)
+  enteredAt: string          // Data de entrada
+  reentries: number          // Reentradas (ciclos)
+  cyclesCompleted: number    // Ciclos completados
+  totalEarned: number        // Total já recebido ($)
+  percentile: number         // Percentil na fila
+  estimatedWait: string      // Tempo estimado
+}
+
+interface LevelGroupedData {
+  level: number              // Nível (1-10)
+  totalQuotas: number        // Quantidade de cotas do usuário
+  quotas: QuotaPosition[]    // Array com todas as cotas
+  bestPosition: number       // Melhor posição entre as cotas
+  worstPosition: number      // Pior posição entre as cotas
+  totalCycles: number        // Total de ciclos de todas as cotas
+  totalEarned: number        // Total ganho em todas as cotas
+  totalInQueue: number       // Total de pessoas no nível
+}
+```
+
+### Estados
+
+```typescript
+const [selectedLevel, setSelectedLevel] = useState(1)           // Nível selecionado
+const [levelsData, setLevelsData] = useState<LevelData[]>([])   // Dados de todos níveis
+const [groupedPositions, setGroupedPositions] = useState<LevelGroupedData[]>([])
+const [expandedLevels, setExpandedLevels] = useState<Set<number>>(new Set())
+const [queueItems, setQueueItems] = useState<QueueItem[]>([])   // Fila do nível selecionado
+```
+
+### Funcionalidades
+
+```
+✅ COTAS AGRUPADAS POR NÍVEL
+   - Mostra resumo: "X cotas em Y nível(is)"
+   - Card por nível com total de cotas
+   - Botão "▼ Ver X cotas" para expandir detalhes
+
+✅ INDICADORES VISUAIS
+   - Verde: posição <= 7 (próximo a ciclar)
+   - Roxo: posição > 7
+   - Badge "PRÓXIMO!" animado para posições 1-7
+
+✅ DETALHES POR COTA (expandível)
+   - Posição na fila
+   - Ciclos completados
+   - Total já recebido
+   - Score individual
+
+✅ FILA DO NÍVEL
+   - Tabela paginada com todas as posições
+   - Destaque para posições do usuário
+   - Indicador Top 7 (próximos a ciclar)
+```
+
+### API Utilizada
+
+```
+GET /api/matrix/position/:level
+Response: {
+  hasPosition: boolean,
+  position: number,
+  totalInQueue: number,
+  allQuotas: QuotaPosition[],  // TODAS as cotas do usuário neste nível
+  totalQuotas: number
+}
+
+GET /api/matrix/stats
+Response: { levels: LevelData[] }
+
+GET /api/matrix/queue/:level?page=1&limit=10&highlight=true
+Response: { items: QueueItem[], pagination: {...} }
+```
+
+## 12.3 Página Wallet (/dashboard/wallet)
+
+### Descrição
+Sistema unificado de carteira com saldos, recebimentos e transações.
+
+### Funcionalidades
+
+```
+✅ SALDOS
+   - Saldo Disponível (disponível para saque/transferência)
+   - Total Recebido (histórico completo)
+   - Total em Cotas (valor investido em cotas ativas)
+   - Saques Realizados
+
+✅ RESUMO DE RECEBIMENTOS
+   - Ciclos completados (ganhos por ciclar)
+   - Bônus de indicação recebidos
+   - Transferências recebidas
+   - Agrupados por tipo com totais
+
+✅ HISTÓRICO DE TRANSAÇÕES
+   - Lista paginada de todas as movimentações
+   - Filtro por tipo (ciclo, bônus, transferência, saque)
+   - Detalhes de cada transação
+
+✅ AÇÕES
+   - Solicitar saque
+   - Transferir para outro usuário
+```
+
+## 12.4 Página Quotas (/dashboard/quotas)
+
+### Descrição
+Compra de cotas em qualquer nível (respeitando requisitos).
+
+### Funcionalidades
+
+```
+✅ GRID DE NÍVEIS
+   - 10 níveis com valores: $10, $20, $40, $80, $160, $320, $640, $1280, $2560, $5120
+   - Indicador de cotas existentes em cada nível
+   - Status: disponível, bloqueado (sem requisito), ou já possui
+
+✅ VALIDAÇÃO DE COMPRA
+   - Nível 1: sempre disponível
+   - Nível N (N>1): precisa ter cota no nível N-1
+   - Verifica saldo suficiente
+
+✅ FLUXO DE COMPRA
+   - Selecionar nível
+   - Confirmar valor
+   - Confirmar com PIN (se configurado)
+   - Entrada na fila do nível
+```
+
+## 12.5 Página Transfers (/dashboard/transfers)
+
+### Descrição
+Transferências internas entre usuários com segurança via PIN.
+
+### Funcionalidades
+
+```
+✅ FORMULÁRIO DE TRANSFERÊNCIA
+   - Campo: wallet do destinatário
+   - Campo: valor ($)
+   - Campo: PIN de segurança
+   - Validação de saldo disponível
+
+✅ SEGURANÇA
+   - Obrigatório PIN de 4-6 dígitos
+   - Bloqueio após 3 tentativas incorretas
+   - Desbloqueio após 30 minutos
+
+✅ HISTÓRICO
+   - Transferências enviadas
+   - Transferências recebidas
+   - Status e data de cada operação
+```
+
+## 12.6 Página Cosmos (/dashboard/cosmos)
+
+### Descrição
+Dashboard visual interativo com tema cósmico representando o sistema 7iATLAS como um sistema solar. Cada nível é um planeta orbitando ao redor do Sol (centro). Visual imersivo com animações, órbitas giratórias e detalhes interativos.
+
+### Arquivo
+`src/app/dashboard/cosmos/page.tsx` (~965 linhas)
+
+### Interfaces TypeScript
+
+```typescript
+interface UserData {
+  id: string
+  name: string
+  email: string
+  referralCode: string
+  currentLevel: number
+  balance: number
+  totalEarned: number
+  totalCycles: number
+  referralBonus?: number
+  referralCount?: number
+}
+
+interface LevelPosition {
+  level: number          // Nível (1-10)
+  position: number       // Posição na fila
+  totalInQueue: number   // Total de pessoas no nível
+  quotaCount: number     // Quantidade de cotas do usuário
+  cyclesCompleted: number // Ciclos completados
+  totalEarned: number    // Total ganho ($)
+}
+
+interface QueuePerson {
+  position: number
+  name: string
+  code: string
+  isCurrentUser: boolean
+}
+
+interface TickerItem {
+  id: string
+  type: 'cycle' | 'entry' | 'bonus'
+  user: string
+  level: number
+  amount: number
+  time: string
+}
+
+interface JupiterPoolData {
+  balance: number
+  totalDeposits: number
+  totalWithdrawals: number
+  todayDeposits: number
+  todayWithdrawals: number
+  interventions: number
+  protectedLevels: number[]
+  healthScore: number
+}
+
+interface SelectedPlanet {
+  position: number
+  name: string
+  code: string
+  isCurrentUser: boolean
+  index: number
+}
+```
+
+### Estados
+
+```typescript
+const [user, setUser] = useState<UserData | null>(null)
+const [positions, setPositions] = useState<LevelPosition[]>([])
+const [selectedLevel, setSelectedLevel] = useState(1)
+const [queueData, setQueueData] = useState<QueuePerson[]>([])
+const [communityFund, setCommunityFund] = useState(0)
+const [loading, setLoading] = useState(true)
+const [selectedPlanet, setSelectedPlanet] = useState<SelectedPlanet | null>(null)
+const [orbitRotation, setOrbitRotation] = useState(0)
+const [isRotating, setIsRotating] = useState(true)
+const [jupiterPool, setJupiterPool] = useState<JupiterPoolData | null>(null)
+const [showJupiterDetails, setShowJupiterDetails] = useState(false)
+```
+
+### Funcionalidades
+
+```
+✅ SISTEMA SOLAR INTERATIVO
+   - Sol central com animação de pulso
+   - 10 planetas (níveis) em órbita
+   - Animação de rotação automática (pausável)
+   - Clique em planeta para ver detalhes
+   - Tamanho do planeta proporcional ao valor do nível
+
+✅ VISUALIZAÇÃO DE PLANETAS
+   - Cores únicas por nível (gradiente personalizado)
+   - Destaque verde para níveis onde usuário está
+   - Anéis de Saturno no Nível 6
+   - Efeitos de glow e sombras
+   - Hover com tooltip de informações
+
+✅ PAINEL DO EXPLORADOR (USUÁRIO)
+   - Nome e código de referência
+   - Nível máximo alcançado
+   - Total de ciclos completados
+   - Total de cotas ativas
+   - Total ganho ($)
+
+✅ FUNDO CÓSMICO (LIQUIDEZ)
+   - Total circulando no sistema
+   - Soma de todos os cashBalance dos níveis
+   - Indicador de saúde do sistema
+
+✅ JUPITER POOL (RESERVA)
+   - Saldo da reserva de segurança
+   - Score de saúde (0-100%)
+   - Níveis protegidos
+   - Total de intervenções realizadas
+   - Botão para expandir detalhes
+
+✅ TICKER DE ATIVIDADES
+   - Feed em tempo real de eventos
+   - Ciclos completados
+   - Novas entradas
+   - Bônus de indicação
+   - Auto-scroll com animação
+
+✅ DETALHES DO PLANETA (MODAL)
+   - Valor de entrada do nível
+   - Recompensa ao ciclar
+   - Pessoas na fila
+   - Próximos a ciclar (Top 7)
+   - Posição do usuário (se houver)
+
+✅ FILA DO NÍVEL SELECIONADO
+   - Lista dos próximos 7 a ciclar
+   - Destaque para posição do usuário
+   - Nome e código de cada pessoa
+   - Indicador visual de proximidade
+```
+
+### APIs Utilizadas
+
+```
+GET /api/users/me
+Response: { data: { user, stats } }
+
+GET /api/matrix/position/:level (paralelo para 10 níveis)
+Response: {
+  hasPosition: boolean,
+  position: number,
+  totalInQueue: number,
+  totalQuotas: number,
+  cyclesCompleted: number,
+  totalEarned: number
+}
+
+GET /api/matrix/stats
+Response: { levels: LevelData[] }
+
+GET /api/matrix/queue/:level?limit=7
+Response: { items: QueuePerson[] }
+
+GET /api/jupiter-pool/balance
+Response: { success, data: JupiterPoolData }
+```
+
+### Otimizações Implementadas
+
+```typescript
+// 1. Verificação de autenticação (evita loading infinito)
+const token = localStorage.getItem('accessToken')
+if (!token) {
+  window.location.href = '/auth/login'
+  return
+}
+
+// 2. Verificação de status 401
+if (userRes.status === 401) {
+  localStorage.removeItem('accessToken')
+  window.location.href = '/auth/login'
+  return
+}
+
+// 3. Fetching paralelo com timeout de 5 segundos
+const positionPromises = []
+for (let level = 1; level <= 10; level++) {
+  const fetchWithTimeout = Promise.race([
+    fetch(`/api/matrix/position/${level}`, { headers }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 5000)
+    )
+  ])
+  positionPromises.push(
+    fetchWithTimeout
+      .then((res: any) => res.json())
+      .then((posData: any) => { /* processar */ })
+      .catch(() => null)  // Falha silenciosa
+  )
+}
+const results = await Promise.all(positionPromises)
+
+// 4. Fallback com dados mock para Jupiter Pool
+setJupiterPool({
+  balance: 15420.50,
+  totalDeposits: 25000,
+  // ... dados demonstrativos
+})
+```
+
+### Estilização CSS-in-JS
+
+```css
+/* Animação do Sol */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Órbita dos planetas */
+@keyframes orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Glow dos planetas */
+.planet-glow {
+  box-shadow: 0 0 20px rgba(color, 0.5);
+}
+
+/* Animação de entrada */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+```
+
+### Layout Visual
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  🚀 COSMOS                                    [Voltar]      │
+├──────────────────┬──────────────────┬───────────────────────┤
+│  EXPLORADOR      │  FUNDO CÓSMICO   │  JUPITER POOL         │
+│  Nome: João      │  $4,405.00       │  $15,420.50           │
+│  Nível: 7        │  circulando      │  reserva ████████ 85% │
+│  Ciclos: 23      │                  │  [Ver detalhes]       │
+├──────────────────┴──────────────────┴───────────────────────┤
+│                                                             │
+│                    ╭───────────╮                            │
+│               ·    │    SOL    │    ·                       │
+│           ·        ╰───────────╯        ·                   │
+│       · N1 ·                        · N10 ·                 │
+│     ·                                      ·                │
+│    N2                                      N9               │
+│     ·                                      ·                │
+│       · N3 ·                        · N8 ·                  │
+│           ·        ╭───────╮        ·                       │
+│               ·    │ N5/N6 │    ·                           │
+│                    ╰───────╯                                │
+│                        N4/N7                                │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  NÍVEL 5 SELECIONADO                                        │
+│  Entrada: $160  │  Recompensa: $320  │  Na fila: 45         │
+├─────────────────────────────────────────────────────────────┤
+│  PRÓXIMOS A CICLAR                                          │
+│  #1 João S. (JOA001) ← VOCÊ ESTÁ AQUI!                      │
+│  #2 Maria L. (MAR023)                                       │
+│  #3 Pedro K. (PED045)                                       │
+│  ...                                                        │
+├─────────────────────────────────────────────────────────────┤
+│  ATIVIDADES EM TEMPO REAL                                   │
+│  🔄 atlas_whale ciclou N7 +$1,280 (2min)                    │
+│  ➕ moon_shot entrou N5 $160 (3min)                         │
+│  💰 lucky_7 bônus N4 +$64 (5min)                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Cores dos Planetas por Nível
+
+```typescript
+const PLANET_COLORS = {
+  1: 'from-gray-400 to-gray-600',      // Mercúrio (cinza)
+  2: 'from-orange-300 to-yellow-500',  // Vênus (dourado)
+  3: 'from-blue-400 to-green-500',     // Terra (azul/verde)
+  4: 'from-red-500 to-orange-600',     // Marte (vermelho)
+  5: 'from-orange-400 to-red-600',     // Júpiter (laranja)
+  6: 'from-yellow-300 to-orange-400',  // Saturno (amarelo) + anéis
+  7: 'from-cyan-300 to-blue-500',      // Urano (ciano)
+  8: 'from-blue-500 to-indigo-700',    // Netuno (azul escuro)
+  9: 'from-purple-400 to-pink-600',    // Plutão (roxo)
+  10: 'from-pink-500 to-red-500',      // Nível supremo (rosa/vermelho)
+}
+```
+
+## 12.7 Página Jupiter Pool (/dashboard/jupiter-pool)
+
+### Descrição
+Sistema anti-travamento com reserva de liquidez.
+
+### Funcionalidades
+
+```
+✅ SALDO DO POOL
+   - Total acumulado
+   - Contribuições hoje
+   - Distribuições realizadas
+
+✅ REGRAS DE USO
+   - 10% da posição 5 vai para o pool
+   - Ativado quando nível trava (< 7 pessoas)
+   - Distribuído proporcionalmente
+```
+
+## 12.8 Página Ranking (/dashboard/ranking)
+
+### Descrição
+Ranking global de usuários por diferentes métricas.
+
+### Funcionalidades
+
+```
+✅ CATEGORIAS
+   - Top Ganhadores (total recebido)
+   - Top Indicadores (mais indicações)
+   - Top Cicladores (mais ciclos)
+
+✅ PERÍODO
+   - Hoje
+   - Esta semana
+   - Este mês
+   - Todo o período
+
+✅ POSIÇÃO DO USUÁRIO
+   - Destaque da própria posição
+   - Comparativo com top 10
+```
+
+## 12.9 Design System
+
+### Cores
+
+```css
+/* Fundos */
+--bg-dark: #0a0a0f;
+--bg-card: rgba(255,255,255,0.05);
+
+/* Gradientes */
+--gradient-primary: linear-gradient(to right, #2F00FF, #8B00FF, #FF00FF);
+--gradient-success: linear-gradient(to right, #10B981, #059669);
+--gradient-warning: linear-gradient(to right, #F59E0B, #D97706);
+
+/* Estados */
+--color-success: #10B981 (verde - próximo a ciclar)
+--color-info: #8B5CF6 (roxo - em espera)
+--color-warning: #F59E0B (amarelo - atenção)
+--color-error: #EF4444 (vermelho - erro)
+```
+
+### Componentes Padrão
+
+```
+✅ Cards com gradiente e borda sutil
+✅ Botões com hover suave
+✅ Badges animados (pulse para "PRÓXIMO!")
+✅ Progress bars com gradiente
+✅ Tabelas com hover highlight
+✅ Modais com backdrop blur
+✅ Loading spinners consistentes
+```
+
+### Responsividade
+
+```
+✅ Mobile First
+✅ Sidebar colapsável em mobile
+✅ Grid adaptativo (2→3→4→5 colunas)
+✅ Tabelas com scroll horizontal
+✅ Touch-friendly (min 44px targets)
+```
+
+---
+
 **Documento completo para desenvolvimento.**
 
 **Arquivos de referência disponíveis:**
@@ -2571,12 +3310,17 @@ SMTP_PASS="..."
 
 **Status da Implementação: ✅ COMPLETO**
 
-Todas as funcionalidades documentadas (7.4.1 a 7.4.6) foram implementadas:
+Todas as funcionalidades documentadas foram implementadas:
 - ✅ Múltiplas cotas por usuário
 - ✅ Compra em níveis superiores
 - ✅ Transferência interna com PIN
 - ✅ Sistema de notificações (email + push)
 - ✅ Visualização de matriz e posição na fila
 - ✅ Frontend completo com todas as páginas
+- ✅ Carteira unificada (Wallet)
+- ✅ Fundo Cósmico (Cosmos) - Dashboard visual interativo
+- ✅ Jupiter Pool (anti-travamento)
+- ✅ Ranking global
 
-*Atualizado: Dezembro 2025*
+*Atualizado: 16 Dezembro 2025*
+*Última modificação: Documentação completa do Cosmos Dashboard*

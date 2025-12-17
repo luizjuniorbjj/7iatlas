@@ -116,7 +116,10 @@ export async function GET(request: NextRequest) {
           activatedAt: user.activatedAt,
         },
         stats: {
-          balance: Number(user.totalEarned) + Number(user.totalBonus) - Number(user.totalWithdrawn),
+          // Saldo disponível real do usuário (campo balance no User)
+          balance: Number(user.balance),
+          // Total recebido = ciclos + bônus
+          totalReceived: Number(user.totalEarned) + Number(user.totalBonus),
           totalEarned: Number(user.totalEarned),
           totalBonus: Number(user.totalBonus),
           totalDeposited: Number(user.totalDeposited),
